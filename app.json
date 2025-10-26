@@ -1,0 +1,46 @@
+{
+  "name": "Krosswords Backend",
+  "description": "Rails API backend for Krosswords crossword puzzle application",
+  "repository": "https://github.com/your-username/krosswords",
+  "logo": "https://raw.githubusercontent.com/your-username/krosswords/main/krosswords-backend/public/icon.png",
+  "keywords": ["rails", "api", "crossword", "puzzle", "ruby"],
+  "success_url": "/up",
+  "scripts": {
+    "postdeploy": "bundle exec rails db:migrate"
+  },
+  "env": {
+    "RAILS_ENV": {
+      "description": "Rails environment",
+      "value": "production"
+    },
+    "RAILS_LOG_LEVEL": {
+      "description": "Rails log level",
+      "value": "info"
+    },
+    "GEMINI_API_KEY": {
+      "description": "Google Gemini API key for AI puzzle generation",
+      "required": false
+    },
+    "RAILS_MASTER_KEY": {
+      "description": "Rails master key for encrypted credentials",
+      "generator": "secret"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:mini",
+      "as": "DATABASE"
+    }
+  ],
+  "buildpacks": [
+    {
+      "url": "https://github.com/heroku/heroku-buildpack-ruby"
+    }
+  ]
+}
