@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_10_26_162412) do
+ActiveRecord::Schema[8.1].define(version: 2025_10_26_172925) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -41,17 +41,23 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_26_162412) do
   end
 
   create_table "puzzles", force: :cascade do |t|
+    t.date "challenge_date"
     t.json "clues", null: false
     t.datetime "created_at", null: false
     t.text "description", null: false
     t.string "difficulty", limit: 10, null: false
+    t.boolean "is_featured", default: false, null: false
     t.boolean "is_published", default: false, null: false
     t.integer "rating", limit: 2, null: false
     t.string "title", limit: 255, null: false
+    t.string "type"
     t.datetime "updated_at", null: false
+    t.index ["challenge_date"], name: "index_puzzles_on_challenge_date", unique: true, where: "(challenge_date IS NOT NULL)"
     t.index ["difficulty"], name: "index_puzzles_on_difficulty"
+    t.index ["is_featured"], name: "index_puzzles_on_is_featured"
     t.index ["is_published"], name: "index_puzzles_on_is_published"
     t.index ["rating"], name: "index_puzzles_on_rating"
+    t.index ["type"], name: "index_puzzles_on_type"
   end
 
   create_table "users", force: :cascade do |t|

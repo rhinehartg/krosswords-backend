@@ -1,6 +1,6 @@
 ActiveAdmin.register Puzzle do
   # Permit parameters for puzzle management
-  permit_params :title, :description, :difficulty, :rating, :is_published, :clues
+  permit_params :title, :description, :difficulty, :rating, :is_published, :clues, :is_featured, :challenge_date
 
   # Add custom action for AI puzzle generation
   action_item :generate_ai_puzzle, only: :index do
@@ -18,6 +18,24 @@ ActiveAdmin.register Puzzle do
     column :description do |puzzle|
       truncate(puzzle.description, length: 50)
     end
+    column :puzzle_type do |puzzle|
+      case puzzle
+      when DailyChallenge
+        content_tag :span, "📅 Daily Challenge", 
+          class: "status_tag daily_challenge",
+          style: "background-color: #ff6b35; color: white;"
+      else
+        if puzzle.featured?
+          content_tag :span, "⭐ Featured", 
+            class: "status_tag featured",
+            style: "background-color: #28a745; color: white;"
+        else
+          content_tag :span, "🧩 Regular", 
+            class: "status_tag regular",
+            style: "background-color: #6c757d; color: white;"
+        end
+      end
+    end
     column :difficulty do |puzzle|
       status_tag puzzle.difficulty, 
         class: puzzle.easy? ? 'green' : puzzle.medium? ? 'orange' : 'red'
@@ -27,6 +45,9 @@ ActiveAdmin.register Puzzle do
     end
     column :clues_count do |puzzle|
       puzzle.clues_count
+    end
+    column :challenge_date do |puzzle|
+      puzzle.challenge_date&.strftime('%Y-%m-%d')
     end
     column :is_published do |puzzle|
       puzzle.is_published? ? 'True' : 'False'
@@ -97,6 +118,14 @@ ActiveAdmin.register Puzzle do
       f.input :rating, as: :select, collection: [1, 2, 3], 
         hint: "1 = ⭐, 2 = ⭐⭐, 3 = ⭐⭐⭐"
       f.input :is_published, as: :boolean
+      f.input :is_featured, as: :boolean, 
+        hint: "Mark this puzzle as featured"
+    end
+    
+    f.inputs "Puzzle Type" do
+      f.input :challenge_date, as: :string, 
+        input_html: { type: 'date' },
+        hint: "Set a date to make this a daily challenge (leave blank for regular puzzle)"
     end
     
     f.inputs "Clues" do

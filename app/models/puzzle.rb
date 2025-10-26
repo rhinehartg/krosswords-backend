@@ -8,7 +8,7 @@ class Puzzle < ApplicationRecord
 
   # For Active Admin filtering
   def self.ransackable_attributes(auth_object = nil)
-    ["created_at", "description", "difficulty", "id", "is_published", "rating", "title", "updated_at"]
+    ["created_at", "description", "difficulty", "id", "is_published", "rating", "title", "updated_at", "is_featured", "challenge_date", "type"]
   end
 
   def self.ransackable_associations(auth_object = nil)
@@ -18,6 +18,11 @@ class Puzzle < ApplicationRecord
   scope :published, -> { where(is_published: true) }
   scope :by_difficulty, ->(level) { where(difficulty: level) }
   scope :by_rating, ->(stars) { where(rating: stars) }
+  
+  # Puzzle type scopes
+  scope :regular, -> { where(type: nil, is_featured: false) }
+  scope :featured, -> { where(is_featured: true) }
+  scope :daily_challenges, -> { where(type: 'DailyChallenge') }
 
   # Helper methods for difficulty
   def easy?
@@ -48,5 +53,28 @@ class Puzzle < ApplicationRecord
   # Helper method to get clues count
   def clues_count
     clues&.length || 0
+  end
+  
+  # Helper methods for puzzle types
+  def daily_challenge?
+    read_attribute(:type) == 'DailyChallenge'
+  end
+  
+  def featured?
+    is_featured?
+  end
+  
+  def regular?
+    read_attribute(:type).nil? && !is_featured?
+  end
+  
+  def puzzle_type
+    if daily_challenge?
+      'Daily Challenge'
+    elsif featured?
+      'Featured'
+    else
+      'Regular'
+    end
   end
 end
