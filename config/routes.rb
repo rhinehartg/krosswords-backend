@@ -3,6 +3,25 @@ Rails.application.routes.draw do
   ActiveAdmin.routes(self)
   devise_for :users
   
+  # API Routes
+  namespace :api do
+    # Authentication
+    post 'auth/login', to: 'auth#login'
+    post 'auth/register', to: 'auth#register'
+    post 'auth/logout', to: 'auth#logout'
+    post 'auth/refresh', to: 'auth#refresh'
+    get 'auth/me', to: 'auth#me'
+    
+    # Health check
+    get 'health', to: 'health#show'
+    
+    # Puzzles
+    resources :puzzles, only: [:index, :show, :create, :update, :destroy]
+    
+    # AI Puzzle generation
+    resources :ai_puzzle, only: [:index, :show, :create]
+  end
+  
   # Puzzle preview route
   get 'puzzle_preview/:id', to: 'puzzle_preview#show', as: 'puzzle_preview'
   
