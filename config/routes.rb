@@ -9,6 +9,9 @@ Rails.application.routes.draw do
   # AI Puzzle generation routes
   resources :ai_puzzle, only: [:index, :show, :create]
   
+  # Daily Challenge generation routes
+  resources :daily_challenges, only: [:index, :show, :create]
+  
   # Crossword generation and layout routes
   resources :crossword, only: [:show] do
     collection do

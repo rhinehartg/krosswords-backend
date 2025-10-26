@@ -13,7 +13,7 @@ ActiveAdmin.register Rating do
       link_to rating.puzzle.title, admin_puzzle_path(rating.puzzle)
     end
     column :rating do |rating|
-      "⭐" * rating.rating
+      "#{rating.rating} stars"
     end
     column :created_at
     actions
@@ -30,7 +30,7 @@ ActiveAdmin.register Rating do
         link_to rating.puzzle.title, admin_puzzle_path(rating.puzzle)
       end
       row :rating do |rating|
-        "⭐" * rating.rating
+        "#{rating.rating} stars"
       end
       row :created_at
       row :updated_at
@@ -43,7 +43,7 @@ ActiveAdmin.register Rating do
       f.input :user, as: :select, collection: User.all.map { |u| [u.email, u.id] }
       f.input :puzzle, as: :select, collection: Puzzle.all.map { |p| [p.title, p.id] }
       f.input :rating, as: :select, collection: [1, 2, 3], 
-        hint: "1 = ⭐, 2 = ⭐⭐, 3 = ⭐⭐⭐"
+        hint: "1 = 1 star, 2 = 2 stars, 3 = 3 stars"
     end
     f.actions
   end

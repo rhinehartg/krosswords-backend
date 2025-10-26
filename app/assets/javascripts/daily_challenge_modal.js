@@ -1,7 +1,7 @@
-// AI Puzzle Generation Modal for Active Admin
-function showAIPuzzleModal() {
+// Daily Challenge Generation Modal for Active Admin
+function showDailyChallengeModal() {
   const modal = document.createElement('div');
-  modal.id = 'ai-puzzle-modal';
+  modal.id = 'daily-challenge-modal';
   modal.style.cssText = `
     position: fixed;
     top: 0;
@@ -15,6 +15,22 @@ function showAIPuzzleModal() {
     z-index: 10000;
   `;
   
+  // Get today's date and theme
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const themes = [
+    "Monday Motivation - inspiring words and positive thinking",
+    "Tuesday Trivia - fun facts and knowledge",
+    "Wednesday Wisdom - life lessons and quotes",
+    "Thursday Thoughts - philosophy and ideas",
+    "Friday Fun - entertainment and games",
+    "Saturday Science - scientific terms and concepts",
+    "Sunday Stories - literature and books"
+  ];
+  
+  const defaultTheme = themes[dayOfWeek];
+  const defaultDifficulty = ['Easy', 'Medium', 'Hard'][dayOfWeek % 3];
+  
   modal.innerHTML = `
     <div style="
       background: white;
@@ -26,13 +42,21 @@ function showAIPuzzleModal() {
       max-height: 80vh;
       overflow-y: auto;
     ">
-      <h2 style="margin-top: 0; color: #333;">Generate AI Puzzle</h2>
+      <h2 style="margin-top: 0; color: #333;">Generate Daily Challenge</h2>
       
-      <form id="ai-puzzle-form">
+      <form id="daily-challenge-form">
+        <div style="margin-bottom: 20px;">
+          <label for="challenge_date" style="display: block; margin-bottom: 5px; font-weight: bold;">Challenge Date:</label>
+          <input type="date" id="challenge_date" name="challenge_date" required 
+            value="${today.toISOString().split('T')[0]}"
+            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+        </div>
+        
         <div style="margin-bottom: 20px;">
           <label for="prompt" style="display: block; margin-bottom: 5px; font-weight: bold;">Theme/Topic:</label>
           <input type="text" id="prompt" name="prompt" required 
-            placeholder="e.g., animals and nature, space exploration, food and cooking"
+            value="${defaultTheme}"
+            placeholder="e.g., Monday Motivation, Friday Fun, etc."
             style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
         </div>
         
@@ -40,40 +64,47 @@ function showAIPuzzleModal() {
           <label for="difficulty" style="display: block; margin-bottom: 5px; font-weight: bold;">Difficulty:</label>
           <select id="difficulty" name="difficulty" required 
             style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
-            <option value="Easy">Easy</option>
-            <option value="Medium" selected>Medium</option>
-            <option value="Hard">Hard</option>
+            <option value="Easy" ${defaultDifficulty === 'Easy' ? 'selected' : ''}>Easy</option>
+            <option value="Medium" ${defaultDifficulty === 'Medium' ? 'selected' : ''}>Medium</option>
+            <option value="Hard" ${defaultDifficulty === 'Hard' ? 'selected' : ''}>Hard</option>
           </select>
         </div>
         
         <div style="margin-bottom: 20px;">
           <label for="word_count" style="display: block; margin-bottom: 5px; font-weight: bold;">Number of Words:</label>
-          <input type="number" id="word_count" name="word_count" min="5" max="15" value="8" required
+          <input type="number" id="word_count" name="word_count" min="5" max="15" value="10" required
             style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
         </div>
         
         <div style="margin-bottom: 20px;">
-          <label for="theme" style="display: block; margin-bottom: 5px; font-weight: bold;">Theme (Optional):</label>
-          <input type="text" id="theme" name="theme" 
-            placeholder="e.g., Nature, Space, Food"
+          <label for="title_override" style="display: block; margin-bottom: 5px; font-weight: bold;">Title Override (Optional):</label>
+          <input type="text" id="title_override" name="title_override" 
+            placeholder="Leave blank for auto-generated title"
             style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
         </div>
         
+        <div style="margin-bottom: 20px;">
+          <label for="description_override" style="display: block; margin-bottom: 5px; font-weight: bold;">Description Override (Optional):</label>
+          <textarea id="description_override" name="description_override" rows="3"
+            placeholder="Leave blank for auto-generated description"
+            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; resize: vertical;"></textarea>
+        </div>
+        
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
-          <button type="button" onclick="closeAIPuzzleModal()" 
+          <button type="button" onclick="closeDailyChallengeModal()" 
             style="padding: 10px 20px; border: 1px solid #ddd; background: #f8f9fa; border-radius: 5px; cursor: pointer;">
             Cancel
           </button>
           <button type="submit" id="generate-btn"
-            style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-            Generate Puzzle
+            style="padding: 10px 20px; background: #ff6b35; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+            Generate Daily Challenge
           </button>
         </div>
       </form>
       
       <div id="generation-status" style="margin-top: 20px; display: none;">
-        <div style="padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #007bff;">
-          <div id="status-text">Generating puzzle...</div>
+        <div style="padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #ff6b35;">
+          <div id="status-text">Generating daily challenge...</div>
           <div id="status-details" style="font-size: 12px; color: #666; margin-top: 5px;"></div>
         </div>
       </div>
@@ -83,21 +114,21 @@ function showAIPuzzleModal() {
   document.body.appendChild(modal);
   
   // Handle form submission
-  document.getElementById('ai-puzzle-form').addEventListener('submit', function(e) {
+  document.getElementById('daily-challenge-form').addEventListener('submit', function(e) {
     e.preventDefault();
-    generateAIPuzzle();
+    generateDailyChallenge();
   });
 }
 
-function closeAIPuzzleModal() {
-  const modal = document.getElementById('ai-puzzle-modal');
+function closeDailyChallengeModal() {
+  const modal = document.getElementById('daily-challenge-modal');
   if (modal) {
     modal.remove();
   }
 }
 
-function generateAIPuzzle() {
-  const form = document.getElementById('ai-puzzle-form');
+function generateDailyChallenge() {
+  const form = document.getElementById('daily-challenge-form');
   const statusDiv = document.getElementById('generation-status');
   const statusText = document.getElementById('status-text');
   const statusDetails = document.getElementById('status-details');
@@ -105,24 +136,26 @@ function generateAIPuzzle() {
   
   // Show status
   statusDiv.style.display = 'block';
-  statusText.textContent = 'Generating puzzle...';
-  statusDetails.textContent = 'Please wait while AI creates your puzzle...';
+  statusText.textContent = 'Generating daily challenge...';
+  statusDetails.textContent = 'Please wait while AI creates your daily challenge...';
   generateBtn.disabled = true;
   generateBtn.textContent = 'Generating...';
   
   // Prepare form data
   const formData = new FormData(form);
   const data = {
-    ai_puzzle: {
+    daily_challenge: {
+      challenge_date: formData.get('challenge_date'),
       prompt: formData.get('prompt'),
       difficulty: formData.get('difficulty'),
-      theme: formData.get('theme'),
-      word_count: parseInt(formData.get('word_count'))
+      word_count: parseInt(formData.get('word_count')),
+      title_override: formData.get('title_override') || null,
+      description_override: formData.get('description_override') || null
     }
   };
   
   // Make API request
-  fetch('/ai_puzzle', {
+  fetch('/daily_challenges', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -133,8 +166,8 @@ function generateAIPuzzle() {
   .then(response => response.json())
   .then(result => {
     if (result.success) {
-      statusText.textContent = '✅ Puzzle generated successfully!';
-      statusDetails.textContent = `Title: ${result.puzzle.title} | Words: ${result.puzzle.clues.length}`;
+      statusText.textContent = '✅ Daily challenge generated successfully!';
+      statusDetails.textContent = `Title: ${result.daily_challenge.title} | Date: ${result.daily_challenge.challenge_date}`;
       generateBtn.textContent = 'Success!';
       generateBtn.style.background = '#28a745';
       
@@ -159,7 +192,7 @@ function generateAIPuzzle() {
 
 // Close modal when clicking outside
 document.addEventListener('click', function(e) {
-  if (e.target.id === 'ai-puzzle-modal') {
-    closeAIPuzzleModal();
+  if (e.target.id === 'daily-challenge-modal') {
+    closeDailyChallengeModal();
   }
 });

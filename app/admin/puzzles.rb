@@ -4,10 +4,18 @@ ActiveAdmin.register Puzzle do
 
   # Add custom action for AI puzzle generation
   action_item :generate_ai_puzzle, only: :index do
-    link_to '🤖 Generate AI Puzzle', '#', 
+    link_to 'Generate AI Puzzle', '#', 
       onclick: 'showAIPuzzleModal(); return false;',
       class: 'button',
       style: 'background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;'
+  end
+  
+  # Add custom action for daily challenge generation
+  action_item :generate_daily_challenge, only: :index do
+    link_to 'Generate Daily Challenge', '#', 
+      onclick: 'showDailyChallengeModal(); return false;',
+      class: 'button',
+      style: 'background-color: #ff6b35; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;'
   end
 
   # Index page configuration
@@ -21,27 +29,38 @@ ActiveAdmin.register Puzzle do
     column :puzzle_type do |puzzle|
       case puzzle
       when DailyChallenge
-        content_tag :span, "📅 Daily Challenge", 
+        content_tag :span, "Daily Challenge", 
           class: "status_tag daily_challenge",
           style: "background-color: #ff6b35; color: white;"
       else
         if puzzle.featured?
-          content_tag :span, "⭐ Featured", 
+          content_tag :span, "Featured", 
             class: "status_tag featured",
             style: "background-color: #28a745; color: white;"
         else
-          content_tag :span, "🧩 Regular", 
+          content_tag :span, "Regular", 
             class: "status_tag regular",
             style: "background-color: #6c757d; color: white;"
         end
       end
     end
     column :difficulty do |puzzle|
-      status_tag puzzle.difficulty, 
-        class: puzzle.easy? ? 'green' : puzzle.medium? ? 'orange' : 'red'
+      case puzzle.difficulty
+      when 'Easy'
+        content_tag :span, puzzle.difficulty, 
+          style: "background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
+      when 'Medium'
+        content_tag :span, puzzle.difficulty, 
+          style: "background-color: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
+      when 'Hard'
+        content_tag :span, puzzle.difficulty, 
+          style: "background-color: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
+      else
+        puzzle.difficulty
+      end
     end
     column :rating do |puzzle|
-      "#{puzzle.rating_count} ratings (#{puzzle.average_rating}/5.0) - " + ("⭐" * puzzle.rating)
+      "#{puzzle.average_rating} (#{puzzle.rating_count})"
     end
     column :clues_count do |puzzle|
       puzzle.clues_count
@@ -75,11 +94,22 @@ ActiveAdmin.register Puzzle do
       row :title
       row :description
       row :difficulty do |puzzle|
-        status_tag puzzle.difficulty,
-          class: puzzle.easy? ? 'green' : puzzle.medium? ? 'orange' : 'red'
+        case puzzle.difficulty
+        when 'Easy'
+          content_tag :span, puzzle.difficulty, 
+            style: "background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
+        when 'Medium'
+          content_tag :span, puzzle.difficulty, 
+            style: "background-color: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
+        when 'Hard'
+          content_tag :span, puzzle.difficulty, 
+            style: "background-color: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
+        else
+          puzzle.difficulty
+        end
       end
       row :rating do |puzzle|
-        "⭐" * puzzle.rating
+        "#{puzzle.average_rating} (#{puzzle.rating_count})"
       end
       row :clues_count do |puzzle|
         puzzle.clues_count
@@ -114,9 +144,13 @@ ActiveAdmin.register Puzzle do
     f.inputs "Puzzle Details" do
       f.input :title
       f.input :description, as: :text, input_html: { rows: 4 }
-      f.input :difficulty, as: :select, collection: ['Easy', 'Medium', 'Hard']
+      f.input :difficulty, as: :select, collection: [
+        ['Easy', 'Easy'],
+        ['Medium', 'Medium'], 
+        ['Hard', 'Hard']
+      ], hint: "Easy = Green, Medium = Yellow, Hard = Red"
       f.input :rating, as: :select, collection: [1, 2, 3], 
-        hint: "1 = ⭐, 2 = ⭐⭐, 3 = ⭐⭐⭐"
+        hint: "1 = 1 star, 2 = 2 stars, 3 = 3 stars"
       f.input :is_published, as: :boolean
       f.input :is_featured, as: :boolean, 
         hint: "Mark this puzzle as featured"

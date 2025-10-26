@@ -1,0 +1,2 @@
+module DailyChallengesHelper
+end
