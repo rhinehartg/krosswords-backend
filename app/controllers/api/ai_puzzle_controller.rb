@@ -13,7 +13,13 @@ class Api::AiPuzzleController < ApplicationController
 
   # POST /api/ai_puzzle
   def create
+    Rails.logger.info "AI Puzzle Controller: create action called"
+    Rails.logger.info "AI Puzzle Controller: params = #{params.inspect}"
+    Rails.logger.info "AI Puzzle Controller: current_user = #{current_user&.email}"
+    
     result = AiGeneratorService.new.generate_puzzle(puzzle_params)
+    
+    Rails.logger.info "AI Puzzle Controller: result = #{result.inspect}"
     
     if result[:success]
       render json: {
