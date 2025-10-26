@@ -60,15 +60,28 @@ class AiGeneratorService
 
   # Generate a puzzle using AI
   def generate_puzzle(request_params)
+    puts "=== AI GENERATOR SERVICE: generate_puzzle CALLED ==="
+    puts "Request params: #{request_params.inspect}"
+    
     validate_request!(request_params)
     
     begin
+      puts "=== BUILDING PROMPT ==="
       prompt = build_prompt(request_params)
+      puts "Prompt: #{prompt}"
+      
+      puts "=== CALLING GEMINI API ==="
       response = call_gemini_api(prompt)
+      puts "Gemini response received"
+      
+      puts "=== PARSING AI RESPONSE ==="
       puzzle_data = parse_ai_response(response, request_params)
+      puts "Puzzle data parsed: #{puzzle_data.inspect}"
       
       # Create and save the puzzle
+      puts "=== CREATING PUZZLE RECORD ==="
       puzzle = create_puzzle_record(puzzle_data)
+      puts "Puzzle created: #{puzzle.id}"
       
       {
         success: true,
@@ -76,6 +89,9 @@ class AiGeneratorService
         error: nil
       }
     rescue Error => e
+      puts "=== AI GENERATOR ERROR ==="
+      puts "Error: #{e.message}"
+      puts "Error class: #{e.class}"
       Rails.logger.error "AI Generator Error: #{e.message}"
       {
         success: false,
