@@ -51,7 +51,11 @@ class Api::AiPuzzleController < ApplicationController
   end
 
   def check_ai_availability
+    Rails.logger.info "AI Puzzle Controller: check_ai_availability called"
+    Rails.logger.info "AI Puzzle Controller: AiGeneratorService.available? = #{AiGeneratorService.available?}"
+    
     unless AiGeneratorService.available?
+      Rails.logger.error "AI Puzzle Controller: AI not available"
       render json: {
         success: false,
         error: 'AI puzzle generation is not available. Please contact support.'
@@ -60,10 +64,15 @@ class Api::AiPuzzleController < ApplicationController
   end
 
   def check_user_quota
+    Rails.logger.info "AI Puzzle Controller: check_user_quota called"
+    
     # For now, default to FREE tier since user tiers aren't implemented yet
     user_tier = 'FREE'
+    Rails.logger.info "AI Puzzle Controller: user_tier = #{user_tier}"
+    Rails.logger.info "AI Puzzle Controller: AiGeneratorService.has_quota?(#{user_tier}) = #{AiGeneratorService.has_quota?(user_tier)}"
     
     unless AiGeneratorService.has_quota?(user_tier)
+      Rails.logger.error "AI Puzzle Controller: User quota exceeded"
       render json: {
         success: false,
         error: "You have reached your daily limit for AI puzzle generation. Upgrade to generate more puzzles."
