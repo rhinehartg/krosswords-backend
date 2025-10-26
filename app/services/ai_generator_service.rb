@@ -136,9 +136,9 @@ class AiGeneratorService
     puts "API key present: #{@api_key.present?}"
     puts "API key length: #{@api_key&.length}"
     
-    unless params[:prompt].present? && params[:prompt].length >= 10
+    unless params[:prompt].present? && params[:prompt].length >= 3
       puts "ERROR: Prompt validation failed"
-      raise Error, 'Prompt must be at least 10 characters long'
+      raise Error, 'Prompt must be at least 3 characters long'
     end
 
     unless params[:word_count].present? && (5..15).cover?(params[:word_count])
