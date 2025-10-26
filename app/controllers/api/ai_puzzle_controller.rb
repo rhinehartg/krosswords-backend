@@ -13,12 +13,17 @@ class Api::AiPuzzleController < ApplicationController
 
   # POST /api/ai_puzzle
   def create
+    puts "=== AI PUZZLE CONTROLLER: CREATE ACTION CALLED ==="
+    puts "Params: #{params.inspect}"
+    puts "Current user: #{current_user&.email}"
+    
     Rails.logger.info "AI Puzzle Controller: create action called"
     Rails.logger.info "AI Puzzle Controller: params = #{params.inspect}"
     Rails.logger.info "AI Puzzle Controller: current_user = #{current_user&.email}"
     
     result = AiGeneratorService.new.generate_puzzle(puzzle_params)
     
+    puts "AI Generator result: #{result.inspect}"
     Rails.logger.info "AI Puzzle Controller: result = #{result.inspect}"
     
     if result[:success]

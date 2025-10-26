@@ -12,8 +12,10 @@ module JwtAuthentication
   end
 
   def authenticate_api_user!
-    Rails.logger.info "JWT Authentication: authenticate_api_user! called"
+    puts "=== JWT AUTHENTICATION: authenticate_api_user! CALLED ==="
     token = extract_token_from_header
+    puts "JWT Authentication: token extracted = #{token ? 'present' : 'missing'}"
+    Rails.logger.info "JWT Authentication: authenticate_api_user! called"
     Rails.logger.info "JWT Authentication: token extracted = #{token ? 'present' : 'missing'}"
     
     if token
