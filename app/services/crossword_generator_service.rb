@@ -43,4 +43,33 @@ class CrosswordGeneratorService
       result: []
     }
   end
+
+  # Generate a complete puzzle using AI and create the crossword layout
+  def generate_ai_puzzle(request_params)
+    # First generate the puzzle content using AI
+    ai_service = AiGeneratorService.new
+    ai_result = ai_service.generate_puzzle(request_params)
+    
+    return ai_result unless ai_result[:success]
+    
+    puzzle = ai_result[:puzzle]
+    
+    # Then generate the crossword layout
+    layout_result = generate_layout(puzzle.clues)
+    
+    {
+      success: true,
+      puzzle: puzzle,
+      layout: layout_result,
+      error: nil
+    }
+  rescue StandardError => e
+    Rails.logger.error "AI Puzzle generation failed: #{e.message}"
+    {
+      success: false,
+      puzzle: nil,
+      layout: nil,
+      error: e.message
+    }
+  end
 end

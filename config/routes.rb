@@ -6,6 +6,20 @@ Rails.application.routes.draw do
   # Puzzle preview route
   get 'puzzle_preview/:id', to: 'puzzle_preview#show', as: 'puzzle_preview'
   
+  # AI Puzzle generation routes
+  resources :ai_puzzle, only: [:index, :show, :create]
+  
+  # Crossword generation and layout routes
+  resources :crossword, only: [:show] do
+    collection do
+      post :generate_ai
+      post :generate_layout
+    end
+    member do
+      get :preview
+    end
+  end
+  
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

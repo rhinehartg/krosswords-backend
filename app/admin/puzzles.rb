@@ -2,6 +2,14 @@ ActiveAdmin.register Puzzle do
   # Permit parameters for puzzle management
   permit_params :title, :description, :difficulty, :rating, :is_published, :clues
 
+  # Add custom action for AI puzzle generation
+  action_item :generate_ai_puzzle, only: :index do
+    link_to '🤖 Generate AI Puzzle', '#', 
+      onclick: 'showAIPuzzleModal(); return false;',
+      class: 'button',
+      style: 'background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;'
+  end
+
   # Index page configuration
   index do
     selectable_column
@@ -111,5 +119,6 @@ ActiveAdmin.register Puzzle do
   filter :is_published, as: :select, collection: [['True', true], ['False', false]]
   filter :created_at
   filter :updated_at
+
 
 end
