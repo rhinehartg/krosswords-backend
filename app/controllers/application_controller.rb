@@ -7,4 +7,7 @@ class ApplicationController < ActionController::Base
 
   # Include JWT authentication for API requests
   include JwtAuthentication
+  
+  # Skip CSRF protection for API requests
+  skip_before_action :verify_authenticity_token, if: :api_request?
 end

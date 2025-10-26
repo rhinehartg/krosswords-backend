@@ -18,7 +18,7 @@ class AiGeneratorService
 
   # AI Generation limits by tier
   QUOTAS = {
-    'FREE' => 0,    # No AI generation for free tier
+    'FREE' => 5,     # 5 AI generations for free tier
     'PRO' => 3,     # 3 AI puzzles per day for Pro
     'PREMIUM' => -1 # Unlimited for Premium (-1 means unlimited)
   }.freeze
@@ -260,7 +260,7 @@ class AiGeneratorService
       difficulty: puzzle_data[:difficulty],
       rating: determine_rating(puzzle_data[:difficulty]),
       clues: puzzle_data[:clues],
-      is_published: false # AI-generated puzzles start unpublished
+      is_published: true # AI-generated puzzles are published by default
     )
   end
 
