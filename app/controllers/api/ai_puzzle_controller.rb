@@ -1,5 +1,5 @@
 class Api::AiPuzzleController < ApplicationController
-  before_action :authenticate_user!, except: [:index, :show, :create]
+  before_action :authenticate_api_user!, except: [:index, :show]
   before_action :check_ai_availability, only: [:create]
   before_action :check_user_quota, only: [:create]
 
