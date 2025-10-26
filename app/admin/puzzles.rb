@@ -1,3 +1,5 @@
+require 'json'
+
 ActiveAdmin.register Puzzle do
   # Permit parameters for puzzle management
   permit_params :title, :description, :difficulty, :rating, :is_published, :clues, :is_featured, :challenge_date
@@ -120,15 +122,34 @@ ActiveAdmin.register Puzzle do
       row :clues do |puzzle|
         if puzzle.clues.present?
           content_tag :div, class: 'clues-display' do
-            puzzle.clues.map do |clue_data|
-              content_tag :div, class: 'clue-item' do
-                content_tag(:strong, "Clue: ") + 
-                clue_data['clue'] + 
-                content_tag(:br) +
-                content_tag(:em, "Answer: ") + 
-                clue_data['answer']
+            begin
+              # Parse clues if it's a string, otherwise use as-is
+              clues_array = if puzzle.clues.is_a?(String)
+                # Try JSON first, then fall back to eval for Ruby hash format
+                begin
+                  JSON.parse(puzzle.clues)
+                rescue JSON::ParserError
+                  # Handle Ruby hash format (e.g., "clue" => "answer")
+                  eval(puzzle.clues)
+                end
+              else
+                puzzle.clues
               end
-            end.join.html_safe
+              
+              clues_array.map do |clue_data|
+                content_tag :div, class: 'clue-item' do
+                  content_tag(:strong, "Clue: ") + 
+                  clue_data['clue'] + 
+                  content_tag(:br) +
+                  content_tag(:em, "Answer: ") + 
+                  clue_data['answer']
+                end
+              end.join.html_safe
+            rescue => e
+              content_tag :div, class: 'error-message' do
+                "Error parsing clues: #{e.message}<br>Raw data: #{puzzle.clues.inspect}"
+              end
+            end
           end
         else
           "No clues"

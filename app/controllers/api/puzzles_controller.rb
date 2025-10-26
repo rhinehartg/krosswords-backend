@@ -95,7 +95,7 @@ class Api::PuzzlesController < ApplicationController
       difficulty: puzzle.difficulty,
       rating: puzzle.average_rating,
       rating_count: puzzle.rating_count,
-      clues: puzzle.clues,
+      clues: parse_clues(puzzle.clues),
       is_published: puzzle.is_published,
       created_at: puzzle.created_at,
       updated_at: puzzle.updated_at,
@@ -104,5 +104,28 @@ class Api::PuzzlesController < ApplicationController
       is_featured: puzzle.is_featured,
       challenge_date: puzzle.challenge_date
     }
+  end
+
+  def parse_clues(clues)
+    return [] if clues.blank?
+    
+    if clues.is_a?(String)
+      begin
+        # Try JSON first
+        JSON.parse(clues)
+      rescue JSON::ParserError
+        begin
+          # Fall back to Ruby hash format
+          eval(clues)
+        rescue => e
+          Rails.logger.error "Failed to parse clues: #{e.message}"
+          []
+        end
+      end
+    elsif clues.is_a?(Array)
+      clues
+    else
+      []
+    end
   end
 end

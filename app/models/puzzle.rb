@@ -85,7 +85,9 @@ class Puzzle < ApplicationRecord
   # Rating methods
   def average_rating
     return 0 if ratings.empty?
-    ratings.average(:rating).round(1)
+    avg = ratings.average(:rating)
+    return 0 if avg.nil?
+    avg.round(1)
   end
   
   def rating_count
