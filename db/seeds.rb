@@ -3,7 +3,7 @@
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
 # Create admin users
-if Rails.env.development?
+if Rails.env.development? || Rails.env.staging?
   # Create default admin user
   admin_user = AdminUser.find_or_create_by!(email: 'admin@example.com') do |user|
     user.password = 'password'
