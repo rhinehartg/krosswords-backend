@@ -52,11 +52,16 @@ class Api::AiPuzzleController < ApplicationController
   private
 
   def puzzle_params
+    puts "=== PUZZLE_PARAMS CALLED ==="
+    puts "Params: #{params.inspect}"
+    puts "ai_puzzle param: #{params[:ai_puzzle].inspect}"
+    
     Rails.logger.info "AI Puzzle Controller: puzzle_params called"
     Rails.logger.info "AI Puzzle Controller: params = #{params.inspect}"
     Rails.logger.info "AI Puzzle Controller: params[:ai_puzzle] = #{params[:ai_puzzle].inspect}"
     
     result = params.require(:ai_puzzle).permit(:prompt, :difficulty, :theme, :word_count)
+    puts "Puzzle params result: #{result.inspect}"
     Rails.logger.info "AI Puzzle Controller: puzzle_params result = #{result.inspect}"
     result
   end
