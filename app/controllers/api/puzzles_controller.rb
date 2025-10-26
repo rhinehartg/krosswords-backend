@@ -1,5 +1,5 @@
 class Api::PuzzlesController < ApplicationController
-  before_action :authenticate_api_user!, except: [:index, :show]
+  skip_before_action :authenticate_api_user!, only: [:index, :show]
 
   # GET /api/puzzles
   def index
