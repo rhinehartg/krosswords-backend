@@ -24,11 +24,23 @@ ActiveAdmin.register Puzzle do
       puzzle.is_published? ? 'True' : 'False'
     end
     column :created_at
-    actions
+    actions do |puzzle|
+      link_to 'View Puzzle', puzzle_preview_path(puzzle), 
+        target: '_blank', 
+        class: 'member_link',
+        style: 'background-color: #007bff; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;'
+    end
   end
 
   # Show page configuration
   show do
+    div style: 'margin-bottom: 20px;' do
+      link_to 'View Puzzle Preview', puzzle_preview_path(puzzle), 
+        target: '_blank', 
+        class: 'button',
+        style: 'background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;'
+    end
+    
     attributes_table do
       row :id
       row :title

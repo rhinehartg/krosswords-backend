@@ -1,0 +1,10 @@
+{
+  "name": "krosswords-backend",
+  "version": "1.0.0",
+  "description": "Backend crossword generation with Node.js integration",
+  "main": "lib/crossword-generator-node.js",
+  "dependencies": {
+    "crossword-layout-generator": "^0.1.1"
+  },
+  "private": true
+}
