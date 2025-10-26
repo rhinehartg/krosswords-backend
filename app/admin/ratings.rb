@@ -40,8 +40,8 @@ ActiveAdmin.register Rating do
   # Form configuration
   form do |f|
     f.inputs "Rating Details" do
-      f.input :user, as: :select, collection: User.all.map { |u| [u.email, u.id] }
-      f.input :puzzle, as: :select, collection: Puzzle.all.map { |p| [p.title, p.id] }
+      f.input :user, as: :select, collection: -> { User.all.map { |u| [u.email, u.id] } }
+      f.input :puzzle, as: :select, collection: -> { Puzzle.all.map { |p| [p.title, p.id] } }
       f.input :rating, as: :select, collection: [1, 2, 3], 
         hint: "1 = 1 star, 2 = 2 stars, 3 = 3 stars"
     end
@@ -49,8 +49,8 @@ ActiveAdmin.register Rating do
   end
 
   # Filters
-  filter :user, as: :select, collection: User.all.map { |u| [u.email, u.id] }
-  filter :puzzle, as: :select, collection: Puzzle.all.map { |p| [p.title, p.id] }
+  filter :user, as: :select, collection: -> { User.all.map { |u| [u.email, u.id] } }
+  filter :puzzle, as: :select, collection: -> { Puzzle.all.map { |p| [p.title, p.id] } }
   filter :rating, as: :select, collection: [1, 2, 3]
   filter :created_at
 end
