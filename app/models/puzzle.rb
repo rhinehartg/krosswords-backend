@@ -6,13 +6,17 @@ class Puzzle < ApplicationRecord
   validates :is_published, inclusion: { in: [true, false] }
   validates :clues, presence: true
 
+  # Associations
+  has_many :ratings, dependent: :destroy
+  has_many :rated_by_users, through: :ratings, source: :user
+
   # For Active Admin filtering
   def self.ransackable_attributes(auth_object = nil)
     ["created_at", "description", "difficulty", "id", "is_published", "rating", "title", "updated_at", "is_featured", "challenge_date", "type"]
   end
 
   def self.ransackable_associations(auth_object = nil)
-    []
+    ["ratings", "rated_by_users"]
   end
 
   scope :published, -> { where(is_published: true) }
@@ -76,5 +80,36 @@ class Puzzle < ApplicationRecord
     else
       'Regular'
     end
+  end
+  
+  # Rating methods
+  def average_rating
+    return 0 if ratings.empty?
+    ratings.average(:rating).round(1)
+  end
+  
+  def rating_count
+    ratings.count
+  end
+  
+  def update_average_rating!
+    avg_rating = average_rating
+    # Convert to 1-3 scale for display (round to nearest integer)
+    display_rating = case avg_rating
+                    when 0..1.5 then 1
+                    when 1.5..2.5 then 2
+                    when 2.5..3.0 then 3
+                    else 2
+                    end
+    
+    update_column(:rating, display_rating)
+  end
+  
+  def user_rating(user)
+    ratings.find_by(user: user)&.rating
+  end
+  
+  def rated_by_user?(user)
+    ratings.exists?(user: user)
   end
 end

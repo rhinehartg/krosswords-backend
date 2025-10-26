@@ -41,7 +41,7 @@ ActiveAdmin.register Puzzle do
         class: puzzle.easy? ? 'green' : puzzle.medium? ? 'orange' : 'red'
     end
     column :rating do |puzzle|
-      "⭐" * puzzle.rating
+      "#{puzzle.rating_count} ratings (#{puzzle.average_rating}/5.0) - " + ("⭐" * puzzle.rating)
     end
     column :clues_count do |puzzle|
       puzzle.clues_count
