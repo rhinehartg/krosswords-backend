@@ -131,21 +131,32 @@ class AiGeneratorService
   private
 
   def validate_request!(params)
+    puts "=== VALIDATING REQUEST ==="
+    puts "Params: #{params.inspect}"
+    puts "API key present: #{@api_key.present?}"
+    puts "API key length: #{@api_key&.length}"
+    
     unless params[:prompt].present? && params[:prompt].length >= 10
+      puts "ERROR: Prompt validation failed"
       raise Error, 'Prompt must be at least 10 characters long'
     end
 
     unless params[:word_count].present? && (5..15).cover?(params[:word_count])
+      puts "ERROR: Word count validation failed"
       raise Error, 'Word count must be between 5 and 15'
     end
 
     unless %w[Easy Medium Hard].include?(params[:difficulty])
+      puts "ERROR: Difficulty validation failed"
       raise Error, 'Difficulty must be Easy, Medium, or Hard'
     end
 
     unless @api_key.present? && @api_key.length > 20
+      puts "ERROR: API key validation failed"
       raise Error, 'Invalid or missing Gemini API key'
     end
+    
+    puts "=== VALIDATION PASSED ==="
   end
 
   def build_prompt(params)
