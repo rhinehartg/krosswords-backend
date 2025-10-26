@@ -34,7 +34,6 @@ class Api::PuzzlesController < ApplicationController
   # POST /api/puzzles
   def create
     puzzle = Puzzle.new(puzzle_params)
-    puzzle.user = current_user if current_user
     
     if puzzle.save
       render json: {
@@ -55,15 +54,6 @@ class Api::PuzzlesController < ApplicationController
   def update
     puzzle = Puzzle.find(params[:id])
     
-    # Check if user owns the puzzle or is admin
-    unless puzzle.user == current_user || current_user&.admin?
-      render json: {
-        success: false,
-        error: 'Not authorized to update this puzzle'
-      }, status: :forbidden
-      return
-    end
-    
     if puzzle.update(puzzle_params)
       render json: {
         success: true,
@@ -82,15 +72,6 @@ class Api::PuzzlesController < ApplicationController
   # DELETE /api/puzzles/:id
   def destroy
     puzzle = Puzzle.find(params[:id])
-    
-    # Check if user owns the puzzle or is admin
-    unless puzzle.user == current_user || current_user&.admin?
-      render json: {
-        success: false,
-        error: 'Not authorized to delete this puzzle'
-      }, status: :forbidden
-      return
-    end
     
     puzzle.destroy
     
@@ -118,10 +99,10 @@ class Api::PuzzlesController < ApplicationController
       is_published: puzzle.is_published,
       created_at: puzzle.created_at,
       updated_at: puzzle.updated_at,
-      user: puzzle.user ? {
-        id: puzzle.user.id,
-        email: puzzle.user.email
-      } : nil
+      # Categorization fields
+      type: puzzle.type,
+      is_featured: puzzle.is_featured,
+      challenge_date: puzzle.challenge_date
     }
   end
 end
