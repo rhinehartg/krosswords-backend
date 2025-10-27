@@ -41,6 +41,16 @@ class AiGeneratorService
     - Clues should be clear and engaging (5-50 characters)
     - Include a mix of short and medium words for good grid construction
 
+    IMPORTANT - Content Guidelines:
+    - Use only publicly available factual information (general knowledge, public domain facts)
+    - Do NOT reproduce copyrighted text, dialogue, lyrics, or specific plot details
+    - For themed puzzles (Disney, Marvel, Star Wars, etc.), use only general public knowledge:
+      * Character names (e.g., "The lion cub in The Lion King" → SIMBA)
+      * General facts, not specific story details
+      * Well-known catchphrases in a descriptive way, not direct quotes
+    - Original clue wording only - do not copy copyrighted material
+    - If theme involves trademarks, use descriptive clues referencing public knowledge only
+
     Return ONLY this JSON format (no additional text):
     {
       "title": "Puzzle Title",
