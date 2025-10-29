@@ -18,6 +18,12 @@ Rails.application.routes.draw do
     # Puzzles
     resources :puzzles, only: [:index, :show, :create, :update, :destroy]
     
+    # Ratings
+    resources :ratings, only: [:create, :update, :destroy]
+    get 'ratings/user/:user_id', to: 'ratings#user_ratings'
+    get 'ratings/puzzle/:puzzle_id', to: 'ratings#puzzle_ratings'
+    get 'ratings/user/:user_id/puzzle/:puzzle_id', to: 'ratings#user_puzzle_rating'
+    
     # AI Puzzle generation
     resources :ai_puzzle, only: [:index, :show, :create]
   end
