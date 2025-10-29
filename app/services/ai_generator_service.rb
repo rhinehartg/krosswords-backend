@@ -32,7 +32,7 @@ class AiGeneratorService
 
   # Default prompt template for puzzle generation
   DEFAULT_PROMPT_TEMPLATE = <<~PROMPT
-    Create a {difficulty} crossword puzzle about "{prompt}" with {word_count} words.
+    Create a {requested_difficulty} crossword puzzle about "{theme}" with approximately {word_count} words.
 
     Requirements:
     - Words: 3-12 letters, UPPERCASE letters only (A-Z, no accented characters)
@@ -40,6 +40,7 @@ class AiGeneratorService
     - Use everyday vocabulary appropriate for the theme
     - Clues should be clear and engaging (5-50 characters)
     - Include a mix of short and medium words for good grid construction
+    - Generate approximately {word_count} words (can be slightly more or less)
 
     IMPORTANT - Content Guidelines:
     - Use only publicly available factual information (general knowledge, public domain facts)
@@ -55,7 +56,7 @@ class AiGeneratorService
     {
       "title": "Puzzle Title",
       "description": "Brief description of the puzzle",
-      "difficulty": "{difficulty}",
+      "difficulty": "{requested_difficulty}",
       "words": [
         {"clue": "Clue text here", "answer": "ANSWER"}
       ]
@@ -173,9 +174,12 @@ class AiGeneratorService
     # Get prompt template from environment variable or use default
     prompt_template = ENV['GEMINI_PROMPT_TEMPLATE'] || DEFAULT_PROMPT_TEMPLATE
     
+    # Use theme if provided, otherwise use prompt as theme
+    theme = params[:theme].present? ? params[:theme] : params[:prompt]
+    
     prompt_template
-      .gsub('{difficulty}', params[:difficulty])
-      .gsub('{prompt}', params[:prompt])
+      .gsub('{theme}', theme)
+      .gsub('{requested_difficulty}', params[:difficulty])
       .gsub('{word_count}', params[:word_count].to_s)
   end
 
@@ -291,22 +295,77 @@ class AiGeneratorService
   end
 
   def create_puzzle_record(puzzle_data)
+    # Convert difficulty to title case for model validation
+    difficulty = case puzzle_data[:difficulty].to_s.upcase
+                when 'EASY' then 'Easy'
+                when 'MEDIUM' then 'Medium'
+                when 'HARD' then 'Hard'
+                else 'Medium'
+                end
+    
+    # Validate and trim clues to ensure they fit in a crossword grid
+    validated_clues = validate_and_trim_clues(puzzle_data[:clues])
+    
     Puzzle.create!(
       title: puzzle_data[:title],
       description: puzzle_data[:description],
-      difficulty: puzzle_data[:difficulty],
+      difficulty: difficulty,
       rating: determine_rating(puzzle_data[:difficulty]),
-      clues: puzzle_data[:clues],
+      clues: validated_clues,
       is_published: true # AI-generated puzzles are published by default
     )
   end
 
   def determine_rating(difficulty)
-    case difficulty
-    when 'Easy' then 1
-    when 'Medium' then 2
-    when 'Hard' then 3
+    case difficulty.to_s.downcase
+    when 'easy' then 1
+    when 'medium' then 2
+    when 'hard' then 3
     else 2 # Default to medium
     end
+  end
+
+  def validate_and_trim_clues(clues)
+    return clues if clues.empty?
+    
+    # Try to generate a crossword layout with all clues
+    crossword_service = CrosswordGeneratorService.new
+    layout_result = crossword_service.generate_layout(clues)
+    
+    # If all words fit, return the original clues
+    if layout_result[:result].length == clues.length
+      puts "All #{clues.length} clues fit in the crossword grid"
+      return clues
+    end
+    
+    # If not all words fit, try with fewer clues
+    puts "Only #{layout_result[:result].length} out of #{clues.length} clues fit in the grid"
+    puts "Attempting to trim clues to fit..."
+    
+    # Start with the words that successfully fit
+    fitted_words = layout_result[:result].map { |word| 
+      clues.find { |clue| clue['answer'] == word['answer'] }
+    }.compact
+    
+    # If we have at least 3 words, use those
+    if fitted_words.length >= 3
+      puts "Using #{fitted_words.length} clues that fit in the grid"
+      return fitted_words
+    end
+    
+    # If we have fewer than 3 words, try progressively smaller sets
+    (clues.length - 1).downto(3) do |count|
+      subset = clues.first(count)
+      layout_result = crossword_service.generate_layout(subset)
+      
+      if layout_result[:result].length == count
+        puts "Successfully fitted #{count} clues in the grid"
+        return subset
+      end
+    end
+    
+    # If all else fails, return the first 3 clues (they should fit)
+    puts "Falling back to first 3 clues"
+    clues.first(3)
   end
 end
