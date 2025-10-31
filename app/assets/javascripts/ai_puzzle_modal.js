@@ -30,9 +30,9 @@ function showAIPuzzleModal() {
       
       <form id="ai-puzzle-form">
         <div style="margin-bottom: 20px;">
-          <label for="prompt" style="display: block; margin-bottom: 5px; font-weight: bold;">Theme/Topic:</label>
+          <label for="prompt" style="display: block; margin-bottom: 5px; font-weight: bold;">Describe theme/topic</label>
           <input type="text" id="prompt" name="prompt" required 
-            placeholder="e.g., animals and nature, space exploration, food and cooking"
+            placeholder="Describe the puzzle theme (e.g., space exploration, kitchen staples)"
             style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
         </div>
         
@@ -47,17 +47,12 @@ function showAIPuzzleModal() {
         </div>
         
         <div style="margin-bottom: 20px;">
-          <label for="word_count" style="display: block; margin-bottom: 5px; font-weight: bold;">Number of Words:</label>
+          <label for="word_count" style="display: block; margin-bottom: 5px; font-weight: bold;">Number of words</label>
           <input type="number" id="word_count" name="word_count" min="5" max="15" value="8" required
             style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
         </div>
         
-        <div style="margin-bottom: 20px;">
-          <label for="theme" style="display: block; margin-bottom: 5px; font-weight: bold;">Theme (Optional):</label>
-          <input type="text" id="theme" name="theme" 
-            placeholder="e.g., Nature, Space, Food"
-            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
-        </div>
+        
         
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
           <button type="button" onclick="closeAIPuzzleModal()" 
@@ -116,7 +111,6 @@ function generateAIPuzzle() {
     ai_puzzle: {
       prompt: formData.get('prompt'),
       difficulty: formData.get('difficulty'),
-      theme: formData.get('theme'),
       word_count: parseInt(formData.get('word_count'))
     }
   };

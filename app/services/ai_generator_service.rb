@@ -15,6 +15,8 @@ class AiGeneratorService
   attribute :timeout, :integer, default: 30
   attribute :max_retries, :integer, default: 3
   attribute :retry_delay, :integer, default: 1
+  attribute :fit_attempts, :integer, default: 6
+  attribute :min_fit_tolerance, :integer, default: 0
 
   # AI Generation limits by tier
   QUOTAS = {
@@ -25,47 +27,49 @@ class AiGeneratorService
 
   # Generation configuration
   GENERATION_CONFIG = {
-    temperature: 0.7,
-    max_output_tokens: 1024,
+    temperature: 0.6,
+    max_output_tokens: 2048,
     response_mime_type: "application/json"
   }.freeze
 
   # Default prompt template for puzzle generation
+  # Header built from input parameters
   DEFAULT_PROMPT_TEMPLATE = <<~PROMPT
-    Create a {requested_difficulty} crossword puzzle about "{theme}" with approximately {word_count} words.
+    Generate a crossword word list.
 
-    Requirements:
-    - Words: 3-12 letters, UPPERCASE letters only (A-Z, no accented characters)
-    - Words must intersect naturally in a crossword grid
-    - Use everyday vocabulary appropriate for the theme
-    - Clues should be clear and engaging (5-50 characters)
-    - Include a mix of short and medium words for good grid construction
-    - Generate approximately {word_count} words (can be slightly more or less)
+    - Theme: {theme}
+    - Difficulty: {requested_difficulty}
+    - Target words: at least {word_count}, up to {word_count_plus_two}
+  PROMPT
 
-    IMPORTANT - Content Guidelines:
-    - Use only publicly available factual information (general knowledge, public domain facts)
-    - Do NOT reproduce copyrighted text, dialogue, lyrics, or specific plot details
-    - For themed puzzles (Disney, Marvel, Star Wars, etc.), use only general public knowledge:
-      * Character names (e.g., "The lion cub in The Lion King" → SIMBA)
-      * General facts, not specific story details
-      * Well-known catchphrases in a descriptive way, not direct quotes
-    - Original clue wording only - do not copy copyrighted material
-    - If theme involves trademarks, use descriptive clues referencing public knowledge only
+  # Guidance appended after the header (can be overridden via GEMINI_PROMPT_GUIDANCE)
+  DEFAULT_PROMPT_GUIDANCE = <<~GUIDE
+    Rules:
+    - Each answer is 3-12 letters, UPPERCASE A-Z only.
+    - Each clue is concise (5-50 chars) and clearly related to the theme.
 
-    Return ONLY this JSON format (no additional text):
+    Return ONLY this JSON (no extra text):
     {
       "title": "Puzzle Title",
-      "description": "Brief description of the puzzle",
+      "description": "Brief description",
       "difficulty": "{requested_difficulty}",
       "words": [
-        {"clue": "Clue text here", "answer": "ANSWER"}
+        {"clue": "Clue text", "answer": "ANSWER"}
       ]
     }
-  PROMPT
+  GUIDE
 
   def initialize(api_key: nil)
     super()
     @api_key = api_key || ENV['GEMINI_API_KEY'] || Rails.application.credentials.gemini_api_key
+    @api_url = ENV['GEMINI_API_URL'].presence || api_url
+    @generation_config = {
+      temperature: (ENV['GEMINI_TEMPERATURE']&.to_f || GENERATION_CONFIG[:temperature]),
+      max_output_tokens: (ENV['GEMINI_MAX_OUTPUT_TOKENS']&.to_i || GENERATION_CONFIG[:max_output_tokens]),
+      response_mime_type: GENERATION_CONFIG[:response_mime_type]
+    }
+    @fit_attempts = (ENV['CROSSWORD_FIT_ATTEMPTS']&.to_i || fit_attempts)
+    @min_fit_tolerance = (ENV['MIN_FIT_TOLERANCE']&.to_i || min_fit_tolerance)
     raise Error, "Missing Gemini API key" if @api_key.blank?
   end
 
@@ -80,13 +84,40 @@ class AiGeneratorService
       puts "=== BUILDING PROMPT ==="
       prompt = build_prompt(request_params)
       puts "Prompt: #{prompt}"
-      
-      puts "=== CALLING GEMINI API ==="
-      response = call_gemini_api(prompt)
-      puts "Gemini response received"
-      
-      puts "=== PARSING AI RESPONSE ==="
-      puzzle_data = parse_ai_response(response, request_params)
+
+      # Basic retry loop for response quality issues
+      attempts = 0
+      max_attempts = (ENV['GEMINI_MAX_RETRIES']&.to_i || max_retries)
+      last_error = nil
+      begin
+        attempts += 1
+        puts "=== CALLING GEMINI API (attempt #{attempts}/#{max_attempts}) ==="
+        response = call_gemini_api(prompt)
+        puts "Gemini response received"
+
+        puts "=== PARSING AI RESPONSE ==="
+        puzzle_data = parse_ai_response(response, request_params)
+
+        # parse_ai_response now filters invalid words and ensures minimum count
+        
+        # Try to fit as many words as possible before creating
+        requested_words = request_params[:word_count].to_i
+        puts "=== FITTING WORDS INTO CROSSWORD GRID ==="
+        fitted_clues = validate_and_trim_clues(puzzle_data[:clues], requested_words)
+        min_acceptable = [requested_words - @min_fit_tolerance, 3].max
+        if fitted_clues.length < min_acceptable
+          raise ParseError, "Too few words fit the grid (#{fitted_clues.length} < #{min_acceptable})"
+        end
+        puzzle_data[:clues] = fitted_clues
+      rescue Error => e
+        last_error = e
+        if attempts < max_attempts
+          sleep(retry_delay)
+          retry
+        else
+          raise
+        end
+      end
       puts "Puzzle data parsed: #{puzzle_data.inspect}"
       
       # Create and save the puzzle
@@ -171,20 +202,28 @@ class AiGeneratorService
   end
 
   def build_prompt(params)
-    # Get prompt template from environment variable or use default
-    prompt_template = ENV['GEMINI_PROMPT_TEMPLATE'] || DEFAULT_PROMPT_TEMPLATE
-    
+    # Header from inputs
+    header_template = DEFAULT_PROMPT_TEMPLATE
+    # Optional guidance from environment, otherwise default guidance
+    guidance_template = ENV['GEMINI_PROMPT_GUIDANCE'].presence || DEFAULT_PROMPT_GUIDANCE
+
     # Use theme if provided, otherwise use prompt as theme
     theme = params[:theme].present? ? params[:theme] : params[:prompt]
-    
-    prompt_template
-      .gsub('{theme}', theme)
-      .gsub('{requested_difficulty}', params[:difficulty])
-      .gsub('{word_count}', params[:word_count].to_s)
+
+    substitutions = {
+      '{theme}' => theme,
+      '{requested_difficulty}' => params[:difficulty],
+      '{word_count}' => params[:word_count].to_s,
+      '{word_count_plus_two}' => (params[:word_count].to_i + 2).to_s
+    }
+
+    header = substitutions.reduce(header_template) { |acc, (k, v)| acc.gsub(k, v) }
+    guidance = substitutions.reduce(guidance_template) { |acc, (k, v)| acc.gsub(k, v) }
+    [header, guidance].join("\n\n")
   end
 
   def call_gemini_api(prompt)
-    uri = URI("#{api_url}?key=#{@api_key}")
+    uri = URI("#{@api_url}?key=#{@api_key}")
     
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
@@ -199,7 +238,7 @@ class AiGeneratorService
       contents: [{
         parts: [{ text: prompt }]
       }],
-      generationConfig: GENERATION_CONFIG
+      generationConfig: @generation_config
     }
     
     request.body = request_body.to_json
@@ -255,13 +294,41 @@ class AiGeneratorService
       raise ParseError, 'Invalid puzzle structure: missing words array'
     end
 
-    # Validate each word
-    words = parsed['words'].map.with_index do |word, index|
-      validate_word!(word, index)
-      {
-        clue: word['clue'].strip,
-        answer: word['answer'].strip
-      }
+    # Filter and validate words - log invalid ones but don't fail immediately
+    words = []
+    invalid_words = []
+    
+    parsed['words'].each.with_index do |word, index|
+      begin
+        validate_word!(word, index)
+        words << {
+          'clue' => word['clue'].strip,
+          'answer' => word['answer'].strip.upcase
+        }
+      rescue ParseError => e
+        invalid_words << {
+          index: index,
+          clue: word['clue'],
+          answer: word['answer'],
+          error: e.message,
+          length: word['answer']&.length
+        }
+        Rails.logger.warn "AI Generator: Filtered invalid word at index #{index}: #{word['answer']} (#{word['answer']&.length} letters) - #{e.message}"
+      end
+    end
+    
+    # Log if we filtered any words
+    if invalid_words.any?
+      Rails.logger.warn "AI Generator: Filtered #{invalid_words.length} invalid word(s) from #{parsed['words'].length} total"
+      invalid_words.each do |inv|
+        puts "  - Index #{inv[:index]}: '#{inv[:answer]}' (#{inv[:length]} letters): #{inv[:error]}"
+      end
+    end
+    
+    # Ensure we still have enough valid words
+    min_words = request_params[:word_count].to_i
+    if words.length < min_words
+      raise ParseError, "After filtering invalid words, only #{words.length} valid words remain (need at least #{min_words}). Invalid words: #{invalid_words.map { |w| "'#{w[:answer]}' (#{w[:length]} letters)" }.join(', ')}"
     end
 
     {
@@ -284,13 +351,16 @@ class AiGeneratorService
       raise ParseError, "Invalid word at index #{index}: clue and answer must be strings"
     end
 
-    # Validate answer format - uppercase letters only
-    unless /^[A-Z]+$/.match?(word['answer'])
-      raise ParseError, "Invalid word at index #{index}: answer must be UPPERCASE letters only (A-Z, no accented characters)"
+    # Normalize answer to uppercase for validation
+    answer = word['answer'].strip.upcase
+    
+    # Validate answer format - letters only (we'll normalize to uppercase)
+    unless /^[A-Za-z]+$/.match?(word['answer'])
+      raise ParseError, "Invalid word at index #{index}: answer must be letters only (A-Z, no spaces, hyphens, or special characters)"
     end
 
-    unless (3..12).cover?(word['answer'].length)
-      raise ParseError, "Invalid word at index #{index}: answer must be 3-12 letters long"
+    unless (3..12).cover?(answer.length)
+      raise ParseError, "Invalid word at index #{index}: answer '#{answer}' must be 3-12 letters long (got #{answer.length})"
     end
   end
 
@@ -325,7 +395,7 @@ class AiGeneratorService
     end
   end
 
-  def validate_and_trim_clues(clues)
+  def validate_and_trim_clues(clues, desired_count = nil)
     return clues if clues.empty?
     
     # Try to generate a crossword layout with all clues
@@ -338,33 +408,40 @@ class AiGeneratorService
       return clues
     end
     
-    # If not all words fit, try with fewer clues
+    # If not all words fit, search for the largest fitting subset with multiple shuffles
     puts "Only #{layout_result[:result].length} out of #{clues.length} clues fit in the grid"
     puts "Attempting to trim clues to fit..."
-    
-    # Start with the words that successfully fit
-    fitted_words = layout_result[:result].map { |word| 
-      clues.find { |clue| clue['answer'] == word['answer'] }
-    }.compact
-    
-    # If we have at least 3 words, use those
-    if fitted_words.length >= 3
-      puts "Using #{fitted_words.length} clues that fit in the grid"
-      return fitted_words
-    end
-    
-    # If we have fewer than 3 words, try progressively smaller sets
-    (clues.length - 1).downto(3) do |count|
-      subset = clues.first(count)
-      layout_result = crossword_service.generate_layout(subset)
-      
-      if layout_result[:result].length == count
-        puts "Successfully fitted #{count} clues in the grid"
-        return subset
+
+    best_subset = []
+    attempts = 0
+    max_attempts = @fit_attempts
+    target = desired_count || clues.length
+
+    while attempts < max_attempts
+      attempts += 1
+      try_clues = clues.shuffle
+      # Prefer meeting the desired count (or close), then decrease
+      start_count = [try_clues.length, target].min
+      start_count.downto(3) do |count|
+        subset = try_clues.first(count)
+        result = crossword_service.generate_layout(subset)
+        if result[:result].length == count
+          puts "Successfully fitted #{count} clues in the grid (attempt #{attempts})"
+          return subset
+        end
+        best_subset = subset if result[:result].length > best_subset.length
       end
     end
-    
-    # If all else fails, return the first 3 clues (they should fit)
+
+    if best_subset.any?
+      puts "Using best found subset of size #{best_subset.length}"
+      return best_subset
+    end
+
+    # Fallback: use any successfully fitted words from the initial attempt, else first 3
+    fitted_words = layout_result[:result].map { |word| clues.find { |clue| clue['answer'] == word['answer'] } }.compact
+    return fitted_words if fitted_words.length >= 3
+
     puts "Falling back to first 3 clues"
     clues.first(3)
   end
