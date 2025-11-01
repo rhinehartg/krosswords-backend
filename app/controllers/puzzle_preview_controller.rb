@@ -14,7 +14,14 @@ class PuzzlePreviewController < ApplicationController
 
   def generate_crossword_layout
     service = CrosswordGeneratorService.new
-    service.generate_layout(@puzzle.clues)
+    layout = service.generate_layout(@puzzle.clues, smart_order: true)
+    
+    # Warn if layout exceeds 15x15
+    unless service.fits_15x15?(layout)
+      Rails.logger.warn "Puzzle #{@puzzle.id} preview layout #{layout[:rows]}x#{layout[:cols]} exceeds 15x15 constraint"
+    end
+    
+    layout
   rescue => e
     Rails.logger.error "Crossword generation failed: #{e.message}"
     # Return a fallback layout

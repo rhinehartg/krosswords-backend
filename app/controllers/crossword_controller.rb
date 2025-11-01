@@ -1,6 +1,10 @@
 class CrosswordController < ApplicationController
-  before_action :authenticate_user!, except: [:show, :preview]
+  before_action :authenticate_user!, except: [:show, :preview, :generate_layout]
   before_action :check_ai_availability, only: [:generate_ai]
+  skip_before_action :verify_authenticity_token, only: [:generate_layout]
+  
+  # Ensure JSON responses for API-like endpoints
+  respond_to :json
 
   # GET /crossword/generate_ai
   def generate_ai
@@ -24,25 +28,60 @@ class CrosswordController < ApplicationController
 
   # POST /crossword/generate_layout
   def generate_layout
-    crossword_service = CrosswordGeneratorService.new
-    layout = crossword_service.generate_layout(layout_params[:words])
+    Rails.logger.info "generate_layout called with params: #{params.inspect}"
     
-    render json: {
-      success: true,
-      layout: layout
-    }
-  rescue StandardError => e
-    render json: {
-      success: false,
-      error: e.message
-    }, status: :unprocessable_entity
+    begin
+      words = layout_params[:words] || layout_params['words'] || []
+      Rails.logger.info "Extracted words: #{words.inspect}"
+      
+      if words.empty?
+        Rails.logger.error "No words provided for layout generation"
+        render json: {
+          success: false,
+          error: 'No words provided for layout generation'
+        }, status: :unprocessable_entity
+        return
+      end
+      
+      crossword_service = CrosswordGeneratorService.new
+      layout = crossword_service.generate_layout(words, smart_order: true)
+      
+      # Warn if layout exceeds 15x15
+      unless crossword_service.fits_15x15?(layout)
+        Rails.logger.warn "Generated layout #{layout[:rows]}x#{layout[:cols]} exceeds 15x15 constraint"
+      end
+      
+      render json: {
+        success: true,
+        layout: layout
+      }
+    rescue ActionController::ParameterMissing => e
+      Rails.logger.error "Parameter error in generate_layout: #{e.message}"
+      Rails.logger.error "Params received: #{params.inspect}"
+      render json: {
+        success: false,
+        error: "Missing required parameter: #{e.param}"
+      }, status: :unprocessable_entity
+    rescue StandardError => e
+      Rails.logger.error "Error generating layout: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      render json: {
+        success: false,
+        error: e.message
+      }, status: :unprocessable_entity
+    end
   end
 
   # GET /crossword/:id
   def show
     puzzle = Puzzle.find(params[:id])
     crossword_service = CrosswordGeneratorService.new
-    layout = crossword_service.generate_layout(puzzle.clues)
+    layout = crossword_service.generate_layout(puzzle.clues, smart_order: true)
+    
+    # Warn if layout exceeds 15x15
+    unless crossword_service.fits_15x15?(layout)
+      Rails.logger.warn "Puzzle #{puzzle.id} layout #{layout[:rows]}x#{layout[:cols]} exceeds 15x15 constraint"
+    end
     
     render json: {
       success: true,
@@ -55,7 +94,12 @@ class CrosswordController < ApplicationController
   def preview
     puzzle = Puzzle.find(params[:id])
     crossword_service = CrosswordGeneratorService.new
-    layout = crossword_service.generate_layout(puzzle.clues)
+    layout = crossword_service.generate_layout(puzzle.clues, smart_order: true)
+    
+    # Warn if layout exceeds 15x15
+    unless crossword_service.fits_15x15?(layout)
+      Rails.logger.warn "Puzzle #{puzzle.id} preview layout #{layout[:rows]}x#{layout[:cols]} exceeds 15x15 constraint"
+    end
     
     render json: {
       success: true,
@@ -71,7 +115,13 @@ class CrosswordController < ApplicationController
   end
 
   def layout_params
-    params.require(:layout).permit(words: [:clue, :answer])
+    # Handle both wrapped and unwrapped params
+    if params[:layout].present?
+      params.require(:layout).permit(words: [:clue, :answer])
+    else
+      # Fallback: assume words are at top level
+      params.permit(words: [:clue, :answer])
+    end
   end
 
   def check_ai_availability

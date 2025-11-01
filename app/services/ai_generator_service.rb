@@ -13,7 +13,7 @@ class AiGeneratorService
   attribute :api_key, :string
   attribute :api_url, :string, default: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent'
   attribute :timeout, :integer, default: 30
-  attribute :max_retries, :integer, default: 3
+  attribute :max_retries, :integer, default: 1  # Only retry for API/parsing errors, not layout issues
   attribute :retry_delay, :integer, default: 1
   attribute :fit_attempts, :integer, default: 6
   attribute :min_fit_tolerance, :integer, default: 0
@@ -85,10 +85,12 @@ class AiGeneratorService
       prompt = build_prompt(request_params)
       puts "Prompt: #{prompt}"
 
-      # Basic retry loop for response quality issues
+      # Call Gemini API - only retry on actual API/parsing errors, not layout fitting issues
       attempts = 0
       max_attempts = (ENV['GEMINI_MAX_RETRIES']&.to_i || max_retries)
-      last_error = nil
+      
+      # First, get words from Gemini (only retry for API/parsing errors)
+      puzzle_data = nil
       begin
         attempts += 1
         puts "=== CALLING GEMINI API (attempt #{attempts}/#{max_attempts}) ==="
@@ -97,27 +99,35 @@ class AiGeneratorService
 
         puts "=== PARSING AI RESPONSE ==="
         puzzle_data = parse_ai_response(response, request_params)
-
-        # parse_ai_response now filters invalid words and ensures minimum count
-        
-        # Try to fit as many words as possible before creating
-        requested_words = request_params[:word_count].to_i
-        puts "=== FITTING WORDS INTO CROSSWORD GRID ==="
-        fitted_clues = validate_and_trim_clues(puzzle_data[:clues], requested_words)
-        min_acceptable = [requested_words - @min_fit_tolerance, 3].max
-        if fitted_clues.length < min_acceptable
-          raise ParseError, "Too few words fit the grid (#{fitted_clues.length} < #{min_acceptable})"
-        end
-        puzzle_data[:clues] = fitted_clues
-      rescue Error => e
-        last_error = e
-        if attempts < max_attempts
+      rescue ApiError, ParseError => e
+        # Only retry for API call failures or JSON parsing errors
+        # Don't retry for word validation errors - those mean Gemini returned invalid data
+        if attempts < max_attempts && e.is_a?(ApiError)
+          puts "API error, retrying... (#{e.message})"
           sleep(retry_delay)
           retry
         else
-          raise
+          raise  # Re-raise if max retries reached or it's a parsing error
         end
       end
+
+      # Once we have words, try to fit them - this doesn't call Gemini, so no retries needed
+      # Gemini's job is done - we just generate layouts locally
+      requested_words = request_params[:word_count].to_i
+      puts "=== FITTING WORDS INTO CROSSWORD GRID ==="
+      fitted_clues = validate_and_trim_clues(puzzle_data[:clues], requested_words)
+      min_acceptable = [requested_words - @min_fit_tolerance, 3].max
+      
+      # If too few words fit, accept what we have - don't retry Gemini
+      # (Gemini did its job - generating words - layout fitting is our responsibility)
+      if fitted_clues.length < min_acceptable
+        puts "Warning: Only #{fitted_clues.length} words fit in 15x15 grid (requested #{requested_words}, minimum #{min_acceptable})"
+        # Still proceed with what fits, don't fail the whole generation
+        if fitted_clues.length < 3
+          raise ParseError, "Too few words fit the grid (#{fitted_clues.length} < 3 minimum)"
+        end
+      end
+      puzzle_data[:clues] = fitted_clues
       puts "Puzzle data parsed: #{puzzle_data.inspect}"
       
       # Create and save the puzzle
@@ -398,51 +408,83 @@ class AiGeneratorService
   def validate_and_trim_clues(clues, desired_count = nil)
     return clues if clues.empty?
     
-    # Try to generate a crossword layout with all clues
     crossword_service = CrosswordGeneratorService.new
-    layout_result = crossword_service.generate_layout(clues)
-    
-    # If all words fit, return the original clues
-    if layout_result[:result].length == clues.length
-      puts "All #{clues.length} clues fit in the crossword grid"
-      return clues
-    end
-    
-    # If not all words fit, search for the largest fitting subset with multiple shuffles
-    puts "Only #{layout_result[:result].length} out of #{clues.length} clues fit in the grid"
-    puts "Attempting to trim clues to fit..."
-
-    best_subset = []
-    attempts = 0
     max_attempts = @fit_attempts
     target = desired_count || clues.length
-
+    
+    # Sort clues by length (longest first) for smart ordering
+    sorted_clues = clues.sort_by { |c| -(c['answer'].to_s.length) }
+    
+    # Keep longest few words locked, shuffle the tail
+    lock_count = [sorted_clues.length / 3, 3].max # Lock top ~33% or at least 3 words
+    locked_words = sorted_clues.first(lock_count)
+    tail_words = sorted_clues[lock_count..-1] || []
+    
+    best_layout = nil
+    best_score = -10000
+    best_clues = []
+    
+    puts "Validating #{clues.length} clues with 15x15 constraint (locking top #{lock_count} longest words)"
+    
+    attempts = 0
     while attempts < max_attempts
       attempts += 1
-      try_clues = clues.shuffle
-      # Prefer meeting the desired count (or close), then decrease
+      
+      # Shuffle the tail, keep longest locked
+      shuffled_tail = tail_words.shuffle
+      try_clues = locked_words + shuffled_tail
+      
+      # Try different counts starting from target down to minimum
       start_count = [try_clues.length, target].min
       start_count.downto(3) do |count|
         subset = try_clues.first(count)
-        result = crossword_service.generate_layout(subset)
-        if result[:result].length == count
-          puts "Successfully fitted #{count} clues in the grid (attempt #{attempts})"
-          return subset
+        
+        # Generate layout with smart ordering (already sorted by length)
+        layout = crossword_service.generate_layout(subset, smart_order: true)
+        
+        # Hard reject if exceeds 15x15
+        unless crossword_service.fits_15x15?(layout)
+          puts "  Attempt #{attempts}, count #{count}: Grid #{layout[:rows]}x#{layout[:cols]} exceeds 15x15, skipping"
+          next
         end
-        best_subset = subset if result[:result].length > best_subset.length
+        
+        # Score the layout
+        score = crossword_service.score_layout(layout)
+        
+        # Check if all words fit AND grid is valid size
+        placed_count = layout[:result].count { |w| w[:orientation] != 'none' }
+        
+        if placed_count == count && score > best_score
+          best_score = score
+          best_layout = layout
+          best_clues = subset
+          puts "  Attempt #{attempts}, count #{count}: Valid #{layout[:rows]}x#{layout[:cols]} grid with score #{score.round(1)}"
+          
+          # If we found a perfect fit, return early
+          return best_clues if placed_count == target
+        end
       end
     end
-
-    if best_subset.any?
-      puts "Using best found subset of size #{best_subset.length}"
-      return best_subset
+    
+    # Return best found layout that fits 15x15
+    if best_clues.any? && crossword_service.fits_15x15?(best_layout)
+      puts "Using best layout: #{best_clues.length} clues, #{best_layout[:rows]}x#{best_layout[:cols]} grid, score #{best_score.round(1)}"
+      return best_clues
     end
-
-    # Fallback: use any successfully fitted words from the initial attempt, else first 3
-    fitted_words = layout_result[:result].map { |word| clues.find { |clue| clue['answer'] == word['answer'] } }.compact
-    return fitted_words if fitted_words.length >= 3
-
-    puts "Falling back to first 3 clues"
-    clues.first(3)
+    
+    # Fallback: try with all clues one more time
+    puts "Fallback: trying all clues with smart ordering..."
+    fallback_layout = crossword_service.generate_layout(sorted_clues, smart_order: true)
+    if crossword_service.fits_15x15?(fallback_layout)
+      placed = fallback_layout[:result].select { |w| w[:orientation] != 'none' }
+      if placed.any?
+        fitted_clues = placed.map { |w| clues.find { |c| c['answer'] == w[:answer] } }.compact
+        return fitted_clues if fitted_clues.length >= 3
+      end
+    end
+    
+    # Final fallback: return first 3 clues
+    puts "Final fallback: using first 3 clues"
+    sorted_clues.first(3)
   end
 end
