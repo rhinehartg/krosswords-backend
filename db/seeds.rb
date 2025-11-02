@@ -365,12 +365,93 @@ if Rails.env.development? || Rails.env.staging?
     end
   end
 
+  # ==========================================
+  # Create Challenge Puzzles (Daily & Weekly)
+  # ==========================================
+  
+  today = Date.today
+  
+  # Daily Challenges: Create challenges for 7 days back and 7 days forward
+  # Konundrum and KrissKross - challenge_date is the specific day
+  (-7..7).each do |day_offset|
+    challenge_date = today + day_offset.days
+    
+    # Cycle through Konundrum puzzles
+    konundrum_index = day_offset.abs % konundrum_puzzles_data.length
+    konundrum_puzzle = konundrum_puzzles_data[konundrum_index]
+    
+    # Create daily Konundrum challenge
+    Puzzle.find_or_create_by!(
+      game_type: 'konundrum',
+      challenge_date: challenge_date
+    ) do |puzzle|
+      puzzle.title = "#{konundrum_puzzle[:title]} - #{challenge_date.strftime('%B %d, %Y')}"
+      puzzle.difficulty = konundrum_puzzle[:difficulty]
+      puzzle.rating = konundrum_puzzle[:rating]
+      puzzle.is_published = true
+      puzzle.game_type = 'konundrum'
+      puzzle.challenge_date = challenge_date
+      puzzle.puzzle_data = konundrum_puzzle[:puzzle_data]
+      # clue is already in puzzle_data, no need to set separately
+    end
+    
+    # Cycle through KrissKross puzzles
+    krisskross_index = day_offset.abs % krisskross_puzzles.length
+    krisskross_puzzle = krisskross_puzzles[krisskross_index]
+    
+    # Create daily KrissKross challenge
+    Puzzle.find_or_create_by!(
+      game_type: 'krisskross',
+      challenge_date: challenge_date
+    ) do |puzzle|
+      puzzle.title = "#{krisskross_puzzle[:title]} - #{challenge_date.strftime('%B %d, %Y')}"
+      puzzle.difficulty = krisskross_puzzle[:difficulty]
+      puzzle.rating = krisskross_puzzle[:rating]
+      puzzle.is_published = true
+      puzzle.game_type = 'krisskross'
+      puzzle.challenge_date = challenge_date
+      puzzle.puzzle_data = krisskross_puzzle[:puzzle_data]
+      # clue is already in puzzle_data, no need to set separately
+    end
+  end
+  
+  # Weekly Challenges: Create challenges for 4 weeks back and 4 weeks forward
+  # Krossword - challenge_date is the Saturday (end of week)
+  (-4..4).each do |week_offset|
+    week_end = (today + week_offset.weeks).end_of_week - 1.day # Saturday (end_of_week returns Sunday, so subtract 1 day)
+    
+    # Cycle through Krossword puzzles
+    krossword_index = week_offset.abs % krossword_puzzles.length
+    krossword_puzzle = krossword_puzzles[krossword_index]
+    
+    # Create weekly Krossword challenge
+    Puzzle.find_or_create_by!(
+      game_type: 'krossword',
+      challenge_date: week_end
+    ) do |puzzle|
+      puzzle.title = "#{krossword_puzzle[:title]} - Week of #{week_end.strftime('%B %d, %Y')}"
+      puzzle.difficulty = krossword_puzzle[:difficulty]
+      puzzle.rating = krossword_puzzle[:rating]
+      puzzle.is_published = true
+      puzzle.game_type = 'krossword'
+      puzzle.challenge_date = week_end # Saturday (end of week)
+      puzzle.puzzle_data = krossword_puzzle[:puzzle_data]
+      if krossword_puzzle[:puzzle_data][:description].present?
+        puzzle.description = krossword_puzzle[:puzzle_data][:description]
+      end
+      if krossword_puzzle[:puzzle_data][:clues].present?
+        puzzle.clues = krossword_puzzle[:puzzle_data][:clues]
+      end
+    end
+  end
+
   puts "✅ Created #{AdminUser.count} admin users"
   puts "✅ Created #{User.count} regular users"
   puts "✅ Created #{Puzzle.count} total puzzles"
-  puts "   - #{Puzzle.krosswords.count} Krossword puzzles"
-  puts "   - #{Puzzle.krisskross.count} KrissKross puzzles"
-  puts "   - #{Puzzle.konundrums.count} Konundrum puzzles"
+  puts "   - #{Puzzle.where(game_type: 'krossword').count} Krossword puzzles"
+  puts "   - #{Puzzle.where(game_type: 'krisskross').count} KrissKross puzzles"
+  puts "   - #{Puzzle.where(game_type: 'konundrum').count} Konundrum puzzles"
+  puts "   - #{Puzzle.where.not(challenge_date: nil).count} Challenge puzzles (daily & weekly)"
   puts "✅ Admin login: admin@example.com / password"
   puts "✅ Super admin login: superadmin@example.com / admin123"
 end

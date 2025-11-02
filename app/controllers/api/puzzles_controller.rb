@@ -6,17 +6,24 @@ class Api::PuzzlesController < ApplicationController
     puzzles = Puzzle.where(is_published: true).order(created_at: :desc)
     
     # Filter for active challenges if requested
+    # Challenges use date ranges:
+    # - Daily challenges (Konundrum, KrissKross): challenge_date represents a single day (must match today)
+    # - Weekly challenges (Krossword): challenge_date represents the end date of the week (Saturday)
     if params[:type] == 'DailyChallenge' || params[:active_challenges] == 'true'
       today = Date.today
-      week_start = today.beginning_of_week
+      week_end = today.end_of_week - 1.day # Saturday (end of week, since end_of_week returns Sunday)
       
-      # Get daily challenges for today (Konundrum, KrissKross)
+      # Daily challenges: Konundrum and KrissKross - match if challenge_date is today
       daily_puzzles = puzzles.where(challenge_date: today, game_type: ['konundrum', 'krisskross'])
       
-      # Get weekly challenges for current week (Krossword)
-      weekly_puzzles = puzzles.where(challenge_date: week_start..week_start + 6.days, game_type: 'krossword')
+      # Weekly challenges: Krossword - match if challenge_date is the end of the current week (Saturday)
+      weekly_puzzles = puzzles.where(challenge_date: week_end, game_type: 'krossword')
       
       puzzles = daily_puzzles.or(weekly_puzzles)
+    else
+      # Exclude challenge puzzles from regular puzzles list
+      # Challenge puzzles should only appear when explicitly requesting active challenges
+      puzzles = puzzles.where(challenge_date: nil)
     end
     
     # Apply filters
