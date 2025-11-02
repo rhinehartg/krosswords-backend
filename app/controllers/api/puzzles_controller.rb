@@ -5,14 +5,54 @@ class Api::PuzzlesController < ApplicationController
   def index
     puzzles = Puzzle.where(is_published: true).order(created_at: :desc)
     
+    # Filter for active challenges if requested
+    if params[:type] == 'DailyChallenge' || params[:active_challenges] == 'true'
+      today = Date.today
+      week_start = today.beginning_of_week
+      
+      # Get daily challenges for today (Konundrum, KrissKross)
+      daily_puzzles = puzzles.where(challenge_date: today, game_type: ['konundrum', 'krisskross'])
+      
+      # Get weekly challenges for current week (Krossword)
+      weekly_puzzles = puzzles.where(challenge_date: week_start..week_start + 6.days, game_type: 'krossword')
+      
+      puzzles = daily_puzzles.or(weekly_puzzles)
+    end
+    
     # Apply filters
     puzzles = puzzles.where(difficulty: params[:difficulty]) if params[:difficulty].present?
-    puzzles = puzzles.where("title ILIKE ? OR description ILIKE ?", "%#{params[:theme]}%", "%#{params[:theme]}%") if params[:theme].present?
-    puzzles = puzzles.limit(params[:limit].to_i) if params[:limit].present?
+    puzzles = puzzles.where(game_type: params[:game_type]) if params[:game_type].present?
+    # Filter by theme/clue in puzzle_data for new puzzle types, or description for legacy
+    if params[:theme].present?
+      puzzles = puzzles.where(
+        "title ILIKE ? OR description ILIKE ? OR puzzle_data::text ILIKE ?",
+        "%#{params[:theme]}%", "%#{params[:theme]}%", "%#{params[:theme]}%"
+      )
+    end
+    
+    # Get total count before pagination
+    total_count = puzzles.count
+    
+    # Apply pagination
+    offset = params[:offset].to_i if params[:offset].present?
+    limit = params[:limit].to_i if params[:limit].present?
+    puzzles = puzzles.offset(offset) if offset.present? && offset > 0
+    puzzles = puzzles.limit(limit) if limit.present?
+    
+    # Get the actual count of puzzles returned
+    puzzles_array = puzzles.to_a
+    puzzles_count = puzzles_array.length
+    
+    # Calculate has_more: true if current offset + returned count is less than total
+    has_more = limit.present? && (offset.to_i + puzzles_count < total_count)
     
     render json: {
       success: true,
-      puzzles: puzzles.map { |puzzle| puzzle_json(puzzle) }
+      puzzles: puzzles_array.map { |puzzle| puzzle_json(puzzle) },
+      total: total_count,
+      offset: offset || 0,
+      limit: limit || puzzles_count,
+      has_more: has_more
     }
   end
 
@@ -84,26 +124,68 @@ class Api::PuzzlesController < ApplicationController
   private
 
   def puzzle_params
-    params.require(:puzzle).permit(:title, :description, :difficulty, :clues, :is_published)
+    params.require(:puzzle).permit(
+      :title, 
+      :description, 
+      :difficulty, 
+      :clues, 
+      :is_published,
+      :game_type,
+      puzzle_data: {}
+    )
   end
 
   def puzzle_json(puzzle)
-    {
-      id: puzzle.id,
+    base_json = {
+      id: puzzle.id.to_s,
       title: puzzle.title,
-      description: puzzle.description,
       difficulty: puzzle.difficulty,
-      rating: puzzle.average_rating,
+      rating: puzzle.average_rating.round,
       rating_count: puzzle.rating_count,
-      clues: parse_clues(puzzle.clues),
       is_published: puzzle.is_published,
-      created_at: puzzle.created_at,
-      updated_at: puzzle.updated_at,
+      created_at: puzzle.created_at.iso8601,
+      updated_at: puzzle.updated_at.iso8601,
       # Categorization fields
       type: puzzle.type,
       is_featured: puzzle.is_featured,
-      challenge_date: puzzle.challenge_date
+      challenge_date: puzzle.challenge_date&.iso8601,
+      game_type: puzzle.game_type
     }
+    
+    # Add game-type-specific fields based on game_type
+    case puzzle.game_type
+    when 'krossword', nil
+      # Legacy krossword or new krossword
+      base_json.merge({
+        description: puzzle.description,
+        clues: parse_clues(puzzle.clues),
+        puzzle_data: puzzle.puzzle_data
+      })
+    when 'konundrum'
+      # Konundrum puzzle - use puzzle_data
+      base_json.merge({
+        puzzle_data: puzzle.puzzle_data,
+        clue: puzzle.clue,
+        words: puzzle.words,
+        letters: puzzle.letters,
+        seed: puzzle.seed
+      })
+    when 'krisskross'
+      # KrissKross puzzle - use puzzle_data
+      base_json.merge({
+        puzzle_data: puzzle.puzzle_data,
+        clue: puzzle.clue,
+        words: puzzle.krisskross_words,
+        layout: puzzle.krisskross_layout
+      })
+    else
+      # Fallback for any puzzle
+      base_json.merge({
+        description: puzzle.description,
+        clues: parse_clues(puzzle.clues),
+        puzzle_data: puzzle.puzzle_data
+      })
+    end
   end
 
   def parse_clues(clues)

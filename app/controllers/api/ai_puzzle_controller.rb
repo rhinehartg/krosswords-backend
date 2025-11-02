@@ -97,16 +97,51 @@ class Api::AiPuzzleController < ApplicationController
   end
 
   def puzzle_json(puzzle)
-    {
-      id: puzzle.id,
+    base_json = {
+      id: puzzle.id.to_s,
       title: puzzle.title,
-      description: puzzle.description,
       difficulty: puzzle.difficulty,
-      rating: puzzle.rating,
-      clues: puzzle.clues,
+      rating: puzzle.average_rating.round,
+      rating_count: puzzle.rating_count,
       is_published: puzzle.is_published,
-      created_at: puzzle.created_at,
-      updated_at: puzzle.updated_at
+      created_at: puzzle.created_at.iso8601,
+      updated_at: puzzle.updated_at.iso8601,
+      game_type: puzzle.game_type,
+      type: puzzle.type,
+      is_featured: puzzle.is_featured,
+      challenge_date: puzzle.challenge_date&.iso8601
     }
+    
+    # Add game-type-specific fields based on game_type
+    case puzzle.game_type
+    when 'krossword', nil
+      base_json.merge({
+        description: puzzle.description,
+        clues: puzzle.clues.is_a?(Array) ? puzzle.clues : (puzzle.clues.present? ? JSON.parse(puzzle.clues) : []),
+        puzzle_data: puzzle.puzzle_data
+      })
+    when 'konundrum'
+      base_json.merge({
+        puzzle_data: puzzle.puzzle_data,
+        clue: puzzle.clue,
+        words: puzzle.words,
+        letters: puzzle.letters,
+        seed: puzzle.seed
+      })
+    when 'krisskross'
+      base_json.merge({
+        puzzle_data: puzzle.puzzle_data,
+        clue: puzzle.clue,
+        words: puzzle.krisskross_words,
+        layout: puzzle.krisskross_layout
+      })
+    else
+      # Fallback for legacy puzzles
+      base_json.merge({
+        description: puzzle.description,
+        clues: puzzle.clues.is_a?(Array) ? puzzle.clues : (puzzle.clues.present? ? JSON.parse(puzzle.clues) : []),
+        puzzle_data: puzzle.puzzle_data
+      })
+    end
   end
 end

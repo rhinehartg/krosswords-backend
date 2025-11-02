@@ -2,7 +2,26 @@ require 'json'
 
 ActiveAdmin.register Puzzle do
   # Permit parameters for puzzle management
-  permit_params :title, :description, :difficulty, :rating, :is_published, :clues, :is_featured, :challenge_date
+  permit_params :title, :description, :difficulty, :rating, :is_published, :clues, :is_featured, :challenge_date, :game_type, :puzzle_data
+  
+  controller do
+    # Before save, parse puzzle_data if it's a string
+    before_action :parse_puzzle_data, only: [:create, :update]
+    
+    private
+    
+    def parse_puzzle_data
+      if params[:puzzle] && params[:puzzle][:puzzle_data].is_a?(String) && params[:puzzle][:puzzle_data].present?
+        begin
+          params[:puzzle][:puzzle_data] = JSON.parse(params[:puzzle][:puzzle_data])
+        rescue JSON::ParserError => e
+          @puzzle = Puzzle.new(puzzle_params.except(:puzzle_data))
+          @puzzle.errors.add(:puzzle_data, "Invalid JSON: #{e.message}")
+          render :edit, status: :unprocessable_entity and return
+        end
+      end
+    end
+  end
 
   # Add custom action for AI puzzle generation
   action_item :generate_ai_puzzle, only: :index do
@@ -25,25 +44,48 @@ ActiveAdmin.register Puzzle do
     selectable_column
     id_column
     column :title
-    column :description do |puzzle|
-      truncate(puzzle.description, length: 50)
+    column :game_type do |puzzle|
+      case puzzle.game_type
+      when 'krossword'
+        content_tag :span, "Krossword", 
+          class: "status_tag",
+          style: "background-color: #007bff; color: white;"
+      when 'konundrum'
+        content_tag :span, "Konundrum", 
+          class: "status_tag",
+          style: "background-color: #28a745; color: white;"
+      when 'krisskross'
+        content_tag :span, "KrissKross", 
+          class: "status_tag",
+          style: "background-color: #ff6b35; color: white;"
+      else
+        content_tag :span, "Krossword (Legacy)", 
+          class: "status_tag",
+          style: "background-color: #6c757d; color: white;"
+      end
     end
-    column :puzzle_type do |puzzle|
-      case puzzle
-      when DailyChallenge
+    column :description_or_clue do |puzzle|
+      text = case puzzle.game_type
+      when 'konundrum', 'krisskross'
+        puzzle.clue || puzzle.puzzle_data&.dig('clue') || 'N/A'
+      else
+        puzzle.description || 'N/A'
+      end
+      truncate(text, length: 50)
+    end
+    column "Challenge Status" do |puzzle|
+      if puzzle.daily_challenge?
         content_tag :span, "Daily Challenge", 
           class: "status_tag daily_challenge",
           style: "background-color: #ff6b35; color: white;"
+      elsif puzzle.featured?
+        content_tag :span, "Featured", 
+          class: "status_tag featured",
+          style: "background-color: #28a745; color: white;"
       else
-        if puzzle.featured?
-          content_tag :span, "Featured", 
-            class: "status_tag featured",
-            style: "background-color: #28a745; color: white;"
-        else
-          content_tag :span, "Regular", 
-            class: "status_tag regular",
-            style: "background-color: #6c757d; color: white;"
-        end
+        content_tag :span, "Regular", 
+          class: "status_tag regular",
+          style: "background-color: #6c757d; color: white;"
       end
     end
     column :difficulty do |puzzle|
@@ -64,8 +106,17 @@ ActiveAdmin.register Puzzle do
     column :rating do |puzzle|
       "#{puzzle.average_rating} (#{puzzle.rating_count})"
     end
-    column :clues_count do |puzzle|
-      puzzle.clues_count
+    column :content_info do |puzzle|
+      case puzzle.game_type
+      when 'konundrum'
+        words = puzzle.words || puzzle.puzzle_data&.dig('words') || []
+        "#{words.length} words"
+      when 'krisskross'
+        words = puzzle.krisskross_words || puzzle.puzzle_data&.dig('words') || []
+        "#{words.length} words"
+      else
+        "#{puzzle.clues_count} clues"
+      end
     end
     column :challenge_date do |puzzle|
       puzzle.challenge_date&.strftime('%Y-%m-%d')
@@ -94,7 +145,31 @@ ActiveAdmin.register Puzzle do
     attributes_table do
       row :id
       row :title
-      row :description
+      row :game_type do |puzzle|
+        case puzzle.game_type
+        when 'krossword'
+          content_tag :span, "Krossword", 
+            style: "background-color: #007bff; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
+        when 'konundrum'
+          content_tag :span, "Konundrum", 
+            style: "background-color: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
+        when 'krisskross'
+          content_tag :span, "KrissKross", 
+            style: "background-color: #ff6b35; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
+        else
+          "Krossword (Legacy)"
+        end
+      end
+      row :description do |puzzle|
+        puzzle.description.presence || 'N/A'
+      end
+      row :clue do |puzzle|
+        if puzzle.game_type == 'konundrum' || puzzle.game_type == 'krisskross'
+          puzzle.clue || puzzle.puzzle_data&.dig('clue') || 'N/A'
+        else
+          'N/A (Krossword puzzles use description)'
+        end
+      end
       row :difficulty do |puzzle|
         case puzzle.difficulty
         when 'Easy'
@@ -113,14 +188,35 @@ ActiveAdmin.register Puzzle do
       row :rating do |puzzle|
         "#{puzzle.average_rating} (#{puzzle.rating_count})"
       end
-      row :clues_count do |puzzle|
-        puzzle.clues_count
+      row :content_info do |puzzle|
+        case puzzle.game_type
+        when 'konundrum'
+          words = puzzle.words || puzzle.puzzle_data&.dig('words') || []
+          letters = puzzle.letters || puzzle.puzzle_data&.dig('letters') || []
+          "Words: #{words.join(', ')} (#{words.length} total)<br>Letters: #{letters.length} shuffled".html_safe
+        when 'krisskross'
+          words = puzzle.krisskross_words || puzzle.puzzle_data&.dig('words') || []
+          "Words: #{words.join(', ')} (#{words.length} total)".html_safe
+        else
+          "Clues Count: #{puzzle.clues_count}"
+        end
+      end
+      row :puzzle_data do |puzzle|
+        if puzzle.puzzle_data.present?
+          content_tag :pre, JSON.pretty_generate(puzzle.puzzle_data), 
+            style: "max-height: 400px; overflow: auto; background: #f5f5f5; padding: 10px; border-radius: 4px;"
+        else
+          'No puzzle data'
+        end
       end
       row :is_published do |puzzle|
         puzzle.is_published? ? 'True' : 'False'
       end
       row :clues do |puzzle|
-        if puzzle.clues.present?
+        # Only show clues for krossword puzzles
+        if puzzle.game_type == 'konundrum' || puzzle.game_type == 'krisskross'
+          "N/A - #{puzzle.game_type&.capitalize} puzzles don't use clues"
+        elsif puzzle.clues.present?
           content_tag :div, class: 'clues-display' do
             begin
               # Parse clues if it's a string, otherwise use as-is
@@ -164,7 +260,11 @@ ActiveAdmin.register Puzzle do
   form do |f|
     f.inputs "Puzzle Details" do
       f.input :title
-      f.input :description, as: :text, input_html: { rows: 4 }
+      f.input :game_type, as: :select, collection: [
+        ['Krossword', 'krossword'],
+        ['Konundrum', 'konundrum'],
+        ['KrissKross', 'krisskross']
+      ], hint: "Select the game type for this puzzle"
       f.input :difficulty, as: :select, collection: [
         ['Easy', 'Easy'],
         ['Medium', 'Medium'], 
@@ -177,19 +277,30 @@ ActiveAdmin.register Puzzle do
         hint: "Mark this puzzle as featured"
     end
     
-    f.inputs "Puzzle Type" do
+    f.inputs "Puzzle Type (Challenge)" do
       f.input :challenge_date, as: :string, 
         input_html: { type: 'date' },
         hint: "Set a date to make this a daily challenge (leave blank for regular puzzle)"
     end
     
-    f.inputs "Clues" do
+    # Conditional inputs based on game_type
+    # Note: This requires JavaScript to show/hide fields, but for now we'll show all
+    f.inputs "Puzzle Content" do
+      f.input :description, as: :text, input_html: { rows: 4 },
+        hint: "Description (for Krossword puzzles)"
       f.input :clues, as: :text, 
         input_html: { 
           rows: 10,
-          placeholder: 'Enter clues as JSON array, e.g.: [{"clue": "Man\'s best friend", "answer": "DOG"}, {"clue": "King of the jungle", "answer": "LION"}]'
+          placeholder: 'Enter clues as JSON array, e.g.: [{"clue": "Man\'s best friend", "answer": "DOG"}]'
         },
-        hint: "Enter clues as a JSON array with 'clue' and 'answer' fields"
+        hint: "Clues (for Krossword puzzles only)"
+      f.input :puzzle_data, as: :text,
+        input_html: {
+          rows: 15,
+          value: f.object.puzzle_data.present? ? JSON.pretty_generate(f.object.puzzle_data) : '',
+          placeholder: 'Enter puzzle_data as JSON object. Structure depends on game_type.'
+        },
+        hint: "Puzzle Data (JSON) - Required for Konundrum and KrissKross. See PUZZLE_DATA_STRUCTURE.md for format."
     end
     
     f.actions
@@ -198,6 +309,11 @@ ActiveAdmin.register Puzzle do
   # Filters
   filter :title
   filter :description
+  filter :game_type, as: :select, collection: [
+    ['Krossword', 'krossword'],
+    ['Konundrum', 'konundrum'],
+    ['KrissKross', 'krisskross']
+  ]
   filter :difficulty, as: :select, collection: ['Easy', 'Medium', 'Hard']
   filter :rating, as: :select, collection: [1, 2, 3]
   filter :is_published, as: :select, collection: [['True', true], ['False', false]]
