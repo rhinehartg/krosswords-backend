@@ -7,6 +7,7 @@ class User < ApplicationRecord
   # Associations
   has_many :ratings, dependent: :destroy
   has_many :rated_puzzles, through: :ratings, source: :puzzle
+  has_many :game_sessions, dependent: :destroy
   
   # Allow Active Admin to search and filter these attributes
   def self.ransackable_attributes(auth_object = nil)
@@ -14,7 +15,7 @@ class User < ApplicationRecord
   end
   
   def self.ransackable_associations(auth_object = nil)
-    ["ratings", "rated_puzzles"]
+    ["ratings", "rated_puzzles", "game_sessions"]
   end
   
   # Helper methods
@@ -24,5 +25,14 @@ class User < ApplicationRecord
   
   def rating_for_puzzle(puzzle)
     ratings.find_by(puzzle: puzzle)&.rating
+  end
+
+  # Game session helper methods
+  def active_session_for_puzzle(puzzle)
+    game_sessions.active.find_by(puzzle: puzzle)
+  end
+
+  def session_for_puzzle(puzzle)
+    game_sessions.find_by(puzzle: puzzle)
   end
 end

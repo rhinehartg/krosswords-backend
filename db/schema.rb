@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_02_214907) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_02_221257) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -38,6 +38,22 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_02_214907) do
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_admin_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_admin_users_on_reset_password_token", unique: true
+  end
+
+  create_table "game_sessions", force: :cascade do |t|
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.jsonb "game_state", default: {}
+    t.bigint "puzzle_id", null: false
+    t.datetime "started_at", null: false
+    t.string "status", default: "active", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["puzzle_id"], name: "index_game_sessions_on_puzzle_id"
+    t.index ["started_at"], name: "index_game_sessions_on_started_at"
+    t.index ["status"], name: "index_game_sessions_on_status"
+    t.index ["user_id", "puzzle_id"], name: "index_game_sessions_on_user_and_puzzle", unique: true
+    t.index ["user_id"], name: "index_game_sessions_on_user_id"
   end
 
   create_table "puzzles", force: :cascade do |t|
@@ -88,6 +104,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_02_214907) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "game_sessions", "puzzles"
+  add_foreign_key "game_sessions", "users"
   add_foreign_key "ratings", "puzzles"
   add_foreign_key "ratings", "users"
 end

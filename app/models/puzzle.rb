@@ -12,6 +12,7 @@ class Puzzle < ApplicationRecord
   # Associations
   has_many :ratings, dependent: :destroy
   has_many :rated_by_users, through: :ratings, source: :user
+  has_many :game_sessions, dependent: :destroy
 
   # For Active Admin filtering
   def self.ransackable_attributes(auth_object = nil)
@@ -19,7 +20,7 @@ class Puzzle < ApplicationRecord
   end
 
   def self.ransackable_associations(auth_object = nil)
-    ["ratings", "rated_by_users"]
+    ["ratings", "rated_by_users", "game_sessions"]
   end
 
   scope :published, -> { where(is_published: true) }

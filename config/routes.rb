@@ -24,6 +24,11 @@ Rails.application.routes.draw do
     get 'ratings/puzzle/:puzzle_id', to: 'ratings#puzzle_ratings'
     get 'ratings/user/:user_id/puzzle/:puzzle_id', to: 'ratings#user_puzzle_rating'
     
+    # Game Sessions
+    resources :game_sessions, only: [:index, :show, :create, :update, :destroy]
+    get 'game_sessions/puzzle/:puzzle_id', to: 'game_sessions#show_or_create'
+    put 'game_sessions/:id/complete', to: 'game_sessions#complete'
+    
     # AI Puzzle generation
     resources :ai_puzzle, only: [:index, :show, :create]
   end
