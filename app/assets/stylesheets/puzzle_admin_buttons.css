@@ -1,0 +1,60 @@
+/* Custom button styles for puzzle admin pages to ensure readability */
+
+.action_items a[onclick*="showAIPuzzleModal"],
+.action_items a[onclick*="PuzzleWizard"],
+.action_items a[onclick*="showDailyChallengeModal"] {
+  padding: 10px 20px !important;
+  text-decoration: none !important;
+  border-radius: 5px !important;
+  font-weight: bold !important;
+  margin-right: 10px !important;
+  border: 2px solid !important;
+  display: inline-block !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+.action_items a[onclick*="showAIPuzzleModal"]:hover,
+.action_items a[onclick*="PuzzleWizard"]:hover,
+.action_items a[onclick*="showDailyChallengeModal"]:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* AI Puzzle button - green theme with black text */
+.action_items a[onclick*="showAIPuzzleModal"] {
+  background-color: #d4edda !important;
+  color: #155724 !important;
+  border-color: #28a745 !important;
+}
+
+.action_items a[onclick*="showAIPuzzleModal"]:hover {
+  background-color: #c3e6cb !important;
+  border-color: #218838 !important;
+}
+
+/* Wizard button - purple theme with dark blue text */
+.action_items a[onclick*="PuzzleWizard"] {
+  background-color: #e0e7ff !important;
+  color: #1e3a8a !important;
+  border-color: #667eea !important;
+}
+
+.action_items a[onclick*="PuzzleWizard"]:hover {
+  background-color: #c7d2fe !important;
+  border-color: #5568d3 !important;
+}
+
+/* Daily challenge button - orange theme with dark brown text */
+.action_items a[onclick*="showDailyChallengeModal"] {
+  background-color: #ffe4d6 !important;
+  color: #7c2d12 !important;
+  border-color: #ff6b35 !important;
+}
+
+.action_items a[onclick*="showDailyChallengeModal"]:hover {
+  background-color: #ffd4b8 !important;
+  border-color: #e55a2b !important;
+}
+

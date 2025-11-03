@@ -174,7 +174,13 @@
     
     <div class="header">
       <h1 class="puzzle-title"><%= @puzzle.title %></h1>
-      <p class="puzzle-description"><%= @puzzle.description %></p>
+      <p class="puzzle-description">
+        <%= if @puzzle.game_type == 'krisskross' || @puzzle.game_type == 'konundrum'
+              @puzzle.clue || @puzzle.puzzle_data&.dig('clue') || @puzzle.description
+            else
+              @puzzle.description
+            end %>
+      </p>
       <div class="puzzle-meta">
         <span class="meta-item difficulty-<%= @puzzle.difficulty.downcase %>">
           <%= @puzzle.difficulty %>
@@ -183,7 +189,11 @@
           <%= "⭐" * @puzzle.rating %> Rating
         </span>
         <span class="meta-item">
-          <%= @puzzle.clues.count %> Words
+          <%= if @puzzle.game_type == 'krisskross' && @puzzle.puzzle_data.present?
+                @puzzle.puzzle_data['words']&.count || @puzzle.puzzle_data[:words]&.count || @puzzle.clues.count
+              else
+                @puzzle.clues.count
+              end %> Words
         </span>
       </div>
     </div>

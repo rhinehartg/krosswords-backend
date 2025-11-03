@@ -5,38 +5,170 @@ ActiveAdmin.register Puzzle do
   permit_params :title, :description, :difficulty, :rating, :is_published, :clues, :is_featured, :challenge_date, :game_type, :puzzle_data
   
   controller do
-    # Before save, parse puzzle_data if it's a string
-    before_action :parse_puzzle_data, only: [:create, :update]
+    # Parse puzzle_data string to hash before Active Admin processes params
+    before_action :parse_puzzle_data_string, only: [:create, :update]
+    
+    # Override build_resource to set puzzle_data after building
+    def build_resource
+      resource = super
+      
+      # Manually set puzzle_data from params if present (bypasses strong params)
+      if params[:puzzle] && params[:puzzle][:puzzle_data].present?
+        puzzle_data = params[:puzzle][:puzzle_data]
+        resource.puzzle_data = puzzle_data if puzzle_data.present?
+      end
+      
+      resource
+    end
+    
+    # Override update to manually set puzzle_data
+    def update
+      if params[:puzzle] && params[:puzzle][:puzzle_data].present?
+        puzzle_data = params[:puzzle][:puzzle_data]
+        resource.puzzle_data = puzzle_data
+      end
+      super
+    end
     
     private
     
-    def parse_puzzle_data
-      if params[:puzzle] && params[:puzzle][:puzzle_data].is_a?(String) && params[:puzzle][:puzzle_data].present?
-        begin
-          params[:puzzle][:puzzle_data] = JSON.parse(params[:puzzle][:puzzle_data])
-        rescue JSON::ParserError => e
-          @puzzle = Puzzle.new(puzzle_params.except(:puzzle_data))
-          @puzzle.errors.add(:puzzle_data, "Invalid JSON: #{e.message}")
-          render :edit, status: :unprocessable_entity and return
+    def parse_puzzle_data_string
+      if params[:puzzle] && params[:puzzle][:puzzle_data].present?
+        puzzle_data_value = params[:puzzle][:puzzle_data]
+        
+        # Parse if it's a string
+        if puzzle_data_value.is_a?(String)
+          begin
+            parsed = JSON.parse(puzzle_data_value)
+            params[:puzzle][:puzzle_data] = parsed
+          rescue JSON::ParserError => e
+            # Will be caught by validation
+          end
         end
       end
+    end
+    
+    # Helper method to shuffle array with seed (matching JavaScript logic)
+    def shuffle_with_seed(array, seed)
+      # Create hash from seed (matching JavaScript hash function)
+      hash = 0
+      seed.each_byte do |byte|
+        hash = ((hash << 5) - hash) + byte
+        hash = hash & hash # Convert to 32bit integer
+      end
+      
+      # Fisher-Yates shuffle with seeded random
+      shuffled = array.dup
+      seed_value = hash.abs
+      
+      (shuffled.length - 1).downto(1) do |i|
+        # Generate pseudo-random index using seed (matching JavaScript PRNG)
+        seed_value = (seed_value * 9301 + 49297) % 233280
+        j = ((seed_value.to_f / 233280) * (i + 1)).floor
+        shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+      end
+      
+      shuffled
     end
   end
 
   # Add custom action for AI puzzle generation
-  action_item :generate_ai_puzzle, only: :index do
+  action_item :generate_ai_puzzle, only: [:index, :new] do
     link_to 'Generate AI Puzzle', '#', 
       onclick: 'showAIPuzzleModal(); return false;',
-      class: 'button',
-      style: 'background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px;'
+      style: 'background-color: #d4edda !important; color: #155724 !important; padding: 10px 20px; text-decoration: none !important; border-radius: 5px; font-weight: bold; margin-right: 10px; border: 2px solid #28a745 !important; display: inline-block; cursor: pointer;'
+  end
+  
+  # Add wizard button on index and new pages
+  action_item :create_with_wizard, only: [:index, :new] do
+    link_to 'Create Puzzle (Wizard)', '#', 
+      onclick: 'PuzzleWizard.show(); return false;',
+      style: 'background-color: #e0e7ff !important; color: #1e3a8a !important; padding: 10px 20px; text-decoration: none !important; border-radius: 5px; font-weight: bold; margin-right: 10px; border: 2px solid #667eea !important; display: inline-block; cursor: pointer;'
   end
   
   # Add custom action for daily challenge generation
   action_item :generate_daily_challenge, only: :index do
     link_to 'Generate Daily Challenge', '#', 
       onclick: 'showDailyChallengeModal(); return false;',
-      class: 'button',
-      style: 'background-color: #ff6b35; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;'
+      style: 'background-color: #ffe4d6 !important; color: #7c2d12 !important; padding: 10px 20px; text-decoration: none !important; border-radius: 5px; font-weight: bold; border: 2px solid #ff6b35 !important; display: inline-block; cursor: pointer;'
+  end
+  
+  # Add regenerate letters button for Konundrum puzzles
+  action_item :regenerate_letters, only: [:show, :edit] do
+    if resource.game_type == 'konundrum' && resource.puzzle_data.present? && resource.puzzle_data['words'].present?
+      link_to 'Regenerate Letters', regenerate_letters_admin_puzzle_path(resource),
+        method: :post,
+        data: { confirm: 'This will generate a new random shuffle of the letters. Continue?' },
+        style: 'background-color: #e0e7ff !important; color: #1e3a8a !important; padding: 10px 20px; text-decoration: none !important; border-radius: 5px; font-weight: bold; margin-right: 10px; border: 2px solid #667eea !important; display: inline-block; cursor: pointer;'
+    end
+  end
+  
+  # Member action to regenerate letters for Konundrum puzzles
+  member_action :regenerate_letters, method: :post do
+    if resource.game_type != 'konundrum'
+      redirect_to admin_puzzle_path(resource), alert: 'This action is only available for Konundrum puzzles.'
+      return
+    end
+    
+    puzzle_data = resource.puzzle_data || {}
+    clue = puzzle_data['clue'] || ''
+    words = puzzle_data['words'] || []
+    
+    if words.empty?
+      redirect_to admin_puzzle_path(resource), alert: 'Cannot regenerate letters: no words found in puzzle data.'
+      return
+    end
+    
+    # Generate new seed with current timestamp (matching JavaScript format)
+    seed = "konundrum-#{Time.now.to_i * 1000 + rand(1000)}-#{words.join('-')}"
+    
+    # Collect all letters from all words
+    all_letters = words.join('').split('').select { |l| l.match?(/[A-Z]/) }
+    
+    # Shuffle using seeded random (matching JavaScript logic)
+    # Create hash from seed (matching JavaScript hash function)
+    hash = 0
+    seed.each_byte do |byte|
+      hash = ((hash << 5) - hash) + byte
+      hash = hash & hash # Convert to 32bit integer
+    end
+    
+    # Fisher-Yates shuffle with seeded random
+    shuffled = all_letters.dup
+    seed_value = hash.abs
+    
+    (shuffled.length - 1).downto(1) do |i|
+      # Generate pseudo-random index using seed (matching JavaScript PRNG)
+      seed_value = (seed_value * 9301 + 49297) % 233280
+      j = ((seed_value.to_f / 233280) * (i + 1)).floor
+      shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+    end
+    
+    shuffled_letters = shuffled
+    
+    # Split shuffled letters into groups based on word sizes
+    word_sizes = words.map(&:length)
+    current_index = 0
+    letter_groups = word_sizes.map do |size|
+      group = shuffled_letters[current_index, size]
+      current_index += size
+      group
+    end
+    
+    # Update puzzle_data
+    resource.puzzle_data = {
+      clue: clue,
+      words: words,
+      letters: shuffled_letters,
+      seed: seed,
+      letterGroups: letter_groups
+    }
+    
+    if resource.save
+      redirect_to admin_puzzle_path(resource), notice: 'Letters have been regenerated with a new random shuffle!'
+    else
+      redirect_to admin_puzzle_path(resource), alert: "Error regenerating letters: #{resource.errors.full_messages.join(', ')}"
+    end
   end
 
   # Index page configuration
