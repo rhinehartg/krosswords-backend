@@ -18,12 +18,6 @@ Rails.application.routes.draw do
     # Puzzles
     resources :puzzles, only: [:index, :show, :create, :update, :destroy]
     
-    # Ratings
-    resources :ratings, only: [:create, :update, :destroy]
-    get 'ratings/user/:user_id', to: 'ratings#user_ratings'
-    get 'ratings/puzzle/:puzzle_id', to: 'ratings#puzzle_ratings'
-    get 'ratings/user/:user_id/puzzle/:puzzle_id', to: 'ratings#user_puzzle_rating'
-    
     # Game Sessions
     resources :game_sessions, only: [:index, :show, :create, :update, :destroy]
     get 'game_sessions/puzzle/:puzzle_id', to: 'game_sessions#show_or_create'

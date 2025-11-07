@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_07_023019) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_07_030617) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -61,32 +61,15 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_07_023019) do
     t.json "clues"
     t.datetime "created_at", null: false
     t.text "description"
-    t.string "difficulty", limit: 10, null: false
     t.string "game_type"
     t.boolean "is_published", default: false, null: false
     t.json "puzzle_data"
-    t.integer "rating", limit: 2, null: false
     t.string "type"
     t.datetime "updated_at", null: false
     t.index ["challenge_date", "game_type"], name: "index_puzzles_on_challenge_date_and_game_type", unique: true, where: "(challenge_date IS NOT NULL)"
-    t.index ["difficulty"], name: "index_puzzles_on_difficulty"
     t.index ["game_type"], name: "index_puzzles_on_game_type"
     t.index ["is_published"], name: "index_puzzles_on_is_published"
-    t.index ["rating"], name: "index_puzzles_on_rating"
     t.index ["type"], name: "index_puzzles_on_type"
-  end
-
-  create_table "ratings", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.bigint "puzzle_id", null: false
-    t.integer "rating", null: false
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["puzzle_id"], name: "index_ratings_on_puzzle_id"
-    t.index ["rating"], name: "index_ratings_on_rating"
-    t.index ["user_id", "puzzle_id"], name: "index_ratings_on_user_id_and_puzzle_id", unique: true
-    t.index ["user_id"], name: "index_ratings_on_user_id"
-    t.check_constraint "rating >= 1 AND rating <= 3", name: "rating_range_check"
   end
 
   create_table "users", force: :cascade do |t|
@@ -105,6 +88,4 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_07_023019) do
 
   add_foreign_key "game_sessions", "puzzles"
   add_foreign_key "game_sessions", "users"
-  add_foreign_key "ratings", "puzzles"
-  add_foreign_key "ratings", "users"
 end

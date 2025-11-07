@@ -43,7 +43,6 @@ class Api::PuzzlesController < ApplicationController
     end
     
     # Apply filters
-    puzzles = puzzles.where(difficulty: params[:difficulty]) if params[:difficulty].present?
     puzzles = puzzles.where(game_type: params[:game_type]) if params[:game_type].present?
     # Filter by theme/clue in puzzle_data for new puzzle types, or description for legacy
     if params[:theme].present?
@@ -153,7 +152,6 @@ class Api::PuzzlesController < ApplicationController
     params.require(:puzzle).permit(
       :title, 
       :description, 
-      :difficulty, 
       :clues, 
       :is_published,
       :game_type,
@@ -164,9 +162,6 @@ class Api::PuzzlesController < ApplicationController
   def puzzle_json(puzzle, summary: false)
     base_json = {
       id: puzzle.id.to_s,
-      difficulty: puzzle.difficulty,
-      rating: puzzle.average_rating.round,
-      rating_count: puzzle.rating_count,
       is_published: puzzle.is_published,
       created_at: puzzle.created_at.iso8601,
       updated_at: puzzle.updated_at.iso8601,

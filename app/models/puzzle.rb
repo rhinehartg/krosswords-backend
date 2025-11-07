@@ -1,7 +1,5 @@
 class Puzzle < ApplicationRecord
   # Common validations for all puzzle types
-  validates :difficulty, presence: true, inclusion: { in: %w[Easy Medium Hard] }
-  validates :rating, presence: true, inclusion: { in: [1, 2, 3] }
   validates :is_published, inclusion: { in: [true, false] }
   validates :game_type, inclusion: { in: %w[krossword konundrum krisskross konstructor] }, allow_nil: true
   
@@ -11,22 +9,18 @@ class Puzzle < ApplicationRecord
   validate :validate_krossword_challenge_date
 
   # Associations
-  has_many :ratings, dependent: :destroy
-  has_many :rated_by_users, through: :ratings, source: :user
   has_many :game_sessions, dependent: :destroy
 
   # For Active Admin filtering
   def self.ransackable_attributes(auth_object = nil)
-    ["created_at", "description", "difficulty", "id", "is_published", "rating", "updated_at", "challenge_date", "type", "game_type", "puzzle_data"]
+    ["created_at", "description", "id", "is_published", "updated_at", "challenge_date", "type", "game_type", "puzzle_data"]
   end
 
   def self.ransackable_associations(auth_object = nil)
-    ["ratings", "rated_by_users", "game_sessions"]
+    ["game_sessions"]
   end
 
   scope :published, -> { where(is_published: true) }
-  scope :by_difficulty, ->(level) { where(difficulty: level) }
-  scope :by_rating, ->(stars) { where(rating: stars) }
   
   # Game type scopes
   scope :krosswords, -> { where(game_type: 'krossword') }
@@ -38,31 +32,6 @@ class Puzzle < ApplicationRecord
   scope :regular, -> { where(type: nil, challenge_date: nil) }
   scope :daily_challenges, -> { where(type: 'DailyChallenge') }
 
-  # Helper methods for difficulty
-  def easy?
-    difficulty == 'Easy'
-  end
-
-  def medium?
-    difficulty == 'Medium'
-  end
-
-  def hard?
-    difficulty == 'Hard'
-  end
-
-  # Helper methods for rating
-  def one_star?
-    rating == 1
-  end
-
-  def two_star?
-    rating == 2
-  end
-
-  def three_star?
-    rating == 3
-  end
 
   # Helper methods for game types
   def krossword?
@@ -177,38 +146,6 @@ class Puzzle < ApplicationRecord
     end
   end
   
-  # Rating methods
-  def average_rating
-    return 0 if ratings.empty?
-    avg = ratings.average(:rating)
-    return 0 if avg.nil?
-    avg.round(1)
-  end
-  
-  def rating_count
-    ratings.count
-  end
-  
-  def update_average_rating!
-    avg_rating = average_rating
-    # Convert to 1-3 scale for display (round to nearest integer)
-    display_rating = case avg_rating
-                    when 0..1.5 then 1
-                    when 1.5..2.5 then 2
-                    when 2.5..3.0 then 3
-                    else 2
-                    end
-    
-    update_column(:rating, display_rating)
-  end
-  
-  def user_rating(user)
-    ratings.find_by(user: user)&.rating
-  end
-  
-  def rated_by_user?(user)
-    ratings.exists?(user: user)
-  end
   
   private
   

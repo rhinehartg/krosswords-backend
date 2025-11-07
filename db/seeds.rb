@@ -18,16 +18,18 @@ if Rails.env.development? || Rails.env.staging?
 
   # Create sample regular users
   users = [
-    { email: 'john@example.com', password: 'password123' },
-    { email: 'jane@example.com', password: 'password123' },
-    { email: 'bob@example.com', password: 'password123' },
-    { email: 'alice@example.com', password: 'password123' }
+    { email: 'john@example.com', password: 'password123', first_name: 'John', last_name: 'Doe' },
+    { email: 'jane@example.com', password: 'password123', first_name: 'Jane', last_name: 'Smith' },
+    { email: 'bob@example.com', password: 'password123', first_name: 'Bob', last_name: 'Johnson' },
+    { email: 'alice@example.com', password: 'password123', first_name: 'Alice', last_name: 'Williams' }
   ]
 
   users.each do |user_data|
     User.find_or_create_by!(email: user_data[:email]) do |user|
       user.password = user_data[:password]
       user.password_confirmation = user_data[:password]
+      user.first_name = user_data[:first_name]
+      user.last_name = user_data[:last_name]
     end
   end
 
@@ -36,8 +38,6 @@ if Rails.env.development? || Rails.env.staging?
   # ==========================================
   krossword_puzzles = [
     {
-      difficulty: "Easy",
-      rating: 2,
       is_published: true,
       game_type: 'krossword',
       puzzle_data: {
@@ -53,8 +53,6 @@ if Rails.env.development? || Rails.env.staging?
       }
     },
     {
-      difficulty: "Medium",
-      rating: 3,
       is_published: true,
       game_type: 'krossword',
       puzzle_data: {
@@ -70,8 +68,6 @@ if Rails.env.development? || Rails.env.staging?
       }
     },
     {
-      difficulty: "Hard",
-      rating: 3,
       is_published: true,
       game_type: 'krossword',
       puzzle_data: {
@@ -93,8 +89,6 @@ if Rails.env.development? || Rails.env.staging?
   # ==========================================
   krisskross_puzzles = [
     {
-      difficulty: "Easy",
-      rating: 2,
       is_published: true,
       game_type: 'krisskross',
       puzzle_data: {
@@ -120,8 +114,6 @@ if Rails.env.development? || Rails.env.staging?
       }
     },
     {
-      difficulty: "Easy",
-      rating: 2,
       is_published: true,
       game_type: 'krisskross',
       puzzle_data: {
@@ -147,8 +139,6 @@ if Rails.env.development? || Rails.env.staging?
       }
     },
     {
-      difficulty: "Easy",
-      rating: 2,
       is_published: true,
       game_type: 'krisskross',
       puzzle_data: {
@@ -189,8 +179,6 @@ if Rails.env.development? || Rails.env.staging?
 
   konundrum_puzzles = [
     {
-      difficulty: "Easy",
-      rating: 2,
       is_published: true,
       game_type: 'konundrum',
       puzzle_data: {
@@ -200,8 +188,6 @@ if Rails.env.development? || Rails.env.staging?
       }
     },
     {
-      difficulty: "Easy",
-      rating: 2,
       is_published: true,
       game_type: 'konundrum',
       puzzle_data: {
@@ -211,8 +197,6 @@ if Rails.env.development? || Rails.env.staging?
       }
     },
     {
-      difficulty: "Easy",
-      rating: 2,
       is_published: true,
       game_type: 'konundrum',
       puzzle_data: {
@@ -230,8 +214,6 @@ if Rails.env.development? || Rails.env.staging?
   # ==========================================
   konstructor_puzzles = [
     {
-      difficulty: "Easy",
-      rating: 2,
       is_published: true,
       game_type: 'konstructor',
       puzzle_data: {
@@ -240,8 +222,6 @@ if Rails.env.development? || Rails.env.staging?
       }
     },
     {
-      difficulty: "Easy",
-      rating: 2,
       is_published: true,
       game_type: 'konstructor',
       puzzle_data: {
@@ -260,8 +240,6 @@ if Rails.env.development? || Rails.env.staging?
       }
     },
     {
-      difficulty: "Medium",
-      rating: 3,
       is_published: true,
       game_type: 'konstructor',
       puzzle_data: {
@@ -270,8 +248,6 @@ if Rails.env.development? || Rails.env.staging?
       }
     },
     {
-      difficulty: "Hard",
-      rating: 3,
       is_published: true,
       game_type: 'konstructor',
       puzzle_data: {
@@ -312,8 +288,6 @@ if Rails.env.development? || Rails.env.staging?
       game_type: 'konundrum',
       challenge_date: challenge_date
     ) do |puzzle|
-      puzzle.difficulty = konundrum_puzzle[:difficulty]
-      puzzle.rating = konundrum_puzzle[:rating]
       puzzle.is_published = true
       puzzle.game_type = 'konundrum'
       puzzle.challenge_date = challenge_date
@@ -327,8 +301,6 @@ if Rails.env.development? || Rails.env.staging?
       game_type: 'krisskross',
       challenge_date: challenge_date
     ) do |puzzle|
-      puzzle.difficulty = krisskross_puzzle[:difficulty]
-      puzzle.rating = krisskross_puzzle[:rating]
       puzzle.is_published = true
       puzzle.game_type = 'krisskross'
       puzzle.challenge_date = challenge_date
@@ -343,8 +315,6 @@ if Rails.env.development? || Rails.env.staging?
         game_type: 'krossword',
         challenge_date: challenge_date
       ) do |puzzle|
-        puzzle.difficulty = krossword_puzzle[:difficulty]
-        puzzle.rating = krossword_puzzle[:rating]
         puzzle.is_published = true
         puzzle.game_type = 'krossword'
         puzzle.challenge_date = challenge_date
@@ -362,8 +332,6 @@ if Rails.env.development? || Rails.env.staging?
       game_type: 'konstructor',
       challenge_date: challenge_date
     ) do |puzzle|
-      puzzle.difficulty = konstructor_puzzle[:difficulty]
-      puzzle.rating = konstructor_puzzle[:rating]
       puzzle.is_published = true
       puzzle.game_type = 'konstructor'
       puzzle.challenge_date = challenge_date
