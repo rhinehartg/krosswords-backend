@@ -272,7 +272,16 @@ ActiveAdmin.register GameSession do
 
   # Filters
   filter :user, as: :select, collection: -> { User.order(:email).map { |u| [u.email, u.id] } }
-  filter :puzzle, as: :select, collection: -> { Puzzle.order(:title).map { |p| ["#{p.title} (#{p.game_type})", p.id] } }
+  filter :puzzle, as: :select, collection: -> { 
+    Puzzle.order(challenge_date: :desc, game_type: :asc).map { |p| 
+      puzzle_label = if p.challenge_date
+        "#{p.game_type || 'Puzzle'} - #{p.challenge_date.strftime('%b %d, %Y')}"
+      else
+        "#{p.game_type || 'Puzzle'} - ##{p.id}"
+      end
+      [puzzle_label, p.id] 
+    } 
+  }
   filter :status, as: :select, collection: [['Active', 'active'], ['Completed', 'completed'], ['Abandoned', 'abandoned']]
   filter :started_at
   filter :completed_at

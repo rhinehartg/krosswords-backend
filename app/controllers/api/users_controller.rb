@@ -25,6 +25,65 @@ class Api::UsersController < ApplicationController
     }
   end
 
+  # GET /api/users/stats
+  # Get user's game completion stats with percentiles
+  def stats
+    user = current_user
+    
+    # Get all completed sessions with puzzle info
+    completed_sessions = user.game_sessions.completed
+                             .where.not(completed_at: nil)
+                             .includes(:puzzle)
+    
+    # Build game stats with percentiles
+    game_stats = []
+    completed_sessions.each do |session|
+      next unless session.puzzle
+      
+      puzzle = session.puzzle
+      user_score = session.game_state&.dig('final_score') || session.game_state&.dig('score') || 0
+      
+      # Skip if score is 0 (likely revealed)
+      next if user_score == 0
+      
+      # Get all completed sessions for this puzzle to calculate percentile
+      all_completed = GameSession.where(puzzle: puzzle, status: 'completed')
+                                 .where.not(completed_at: nil)
+      
+      scores = []
+      all_completed.each do |s|
+        score = s.game_state&.dig('final_score') || s.game_state&.dig('score') || 0
+        scores << score if score > 0
+      end
+      
+      # Calculate percentile
+      percentile = nil
+      if scores.any? && user_score > 0
+        worse_scores = scores.count { |s| s < user_score }
+        percentile = ((worse_scores.to_f / scores.length) * 100).round(1)
+      end
+      
+      game_stats << {
+        puzzle_id: puzzle.id.to_s,
+        puzzle_title: puzzle.puzzle_data&.dig('puzzle_clue') || puzzle.title || "Puzzle #{puzzle.id}",
+        game_type: puzzle.game_type,
+        challenge_date: puzzle.challenge_date,
+        score: user_score,
+        percentile: percentile,
+        total_participants: scores.length
+      }
+    end
+    
+    # Sort by challenge_date desc (most recent first), then by puzzle_id
+    game_stats.sort_by! { |g| [g[:challenge_date] || '', g[:puzzle_id]] }.reverse!
+    
+    render json: {
+      success: true,
+      total_games_completed: game_stats.length,
+      games: game_stats
+    }
+  end
+
   # PUT /api/users/profile
   # Update user profile information
   def update_profile

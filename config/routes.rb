@@ -22,10 +22,13 @@ Rails.application.routes.draw do
     resources :game_sessions, only: [:index, :show, :create, :update, :destroy]
     get 'game_sessions/puzzle/:puzzle_id', to: 'game_sessions#show_or_create'
     put 'game_sessions/:id/complete', to: 'game_sessions#complete'
+    get 'game_sessions/:id/stats', to: 'game_sessions#stats'
+    get 'puzzles/:puzzle_id/leaderboard', to: 'game_sessions#leaderboard'
     
     # Users
     get 'users/profile', to: 'users#profile'
     put 'users/profile', to: 'users#update_profile'
+    get 'users/stats', to: 'users#stats'
     
     # AI Puzzle generation
     resources :ai_puzzle, only: [:index, :show, :create]
