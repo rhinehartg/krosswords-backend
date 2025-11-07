@@ -3,15 +3,30 @@ class Api::PuzzlesController < ApplicationController
 
   # GET /api/puzzles
   def index
-    puzzles = Puzzle.where(is_published: true).order(created_at: :desc)
+    today = Date.today
+    
+    # Order puzzles to prioritize: past (most recent first), then today, then future (nearest first)
+    # This ensures past puzzles appear first in the list so they're visible to users
+    puzzles = Puzzle.where(is_published: true)
+      .order(
+        Arel.sql("CASE 
+          WHEN challenge_date < '#{today}' THEN 1 
+          WHEN challenge_date = '#{today}' THEN 2 
+          WHEN challenge_date > '#{today}' THEN 3 
+          ELSE 4 
+        END"),
+        Arel.sql("CASE 
+          WHEN challenge_date < '#{today}' THEN challenge_date END DESC"),
+        Arel.sql("CASE 
+          WHEN challenge_date > '#{today}' THEN challenge_date END ASC"),
+        created_at: :desc
+      )
     
     # Filter for active challenges if requested
     # Challenges use date ranges:
     # - Daily challenges (Konundrum, KrissKross, Konstructor): challenge_date represents a single day (must match today)
     # - Weekly challenges (Krossword): challenge_date must be on Sunday
     if params[:type] == 'DailyChallenge' || params[:active_challenges] == 'true'
-      today = Date.today
-      
       # Daily challenges: Konundrum, KrissKross, and Konstructor - match if challenge_date is today
       daily_puzzles = puzzles.where(challenge_date: today, game_type: ['konundrum', 'krisskross', 'konstructor'])
       
@@ -23,8 +38,8 @@ class Api::PuzzlesController < ApplicationController
       
       puzzles = daily_puzzles.or(weekly_puzzles)
     else
-      # All puzzles are challenges now, so show all published puzzles
-      # (No filtering needed - all puzzles have challenge_date)
+      # All puzzles: exclude today's challenges (they should only appear in daily challenges)
+      puzzles = puzzles.where.not(challenge_date: today)
     end
     
     # Apply filters
@@ -155,7 +170,9 @@ class Api::PuzzlesController < ApplicationController
       # Categorization fields
       type: puzzle.type,
       challenge_date: puzzle.challenge_date&.iso8601,
-      game_type: puzzle.game_type
+      game_type: puzzle.game_type,
+      # Include title from puzzle_data if available
+      title: puzzle.puzzle_data&.dig('title') || puzzle.description&.truncate(50)
     }
     
     # Add game-type-specific fields based on game_type
