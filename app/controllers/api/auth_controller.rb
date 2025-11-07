@@ -84,7 +84,7 @@ class Api::AuthController < ApplicationController
   end
 
   def register_params
-    params.require(:auth).permit(:email, :password, :password_confirmation)
+    params.require(:auth).permit(:email, :password, :password_confirmation, :first_name, :last_name)
   end
 
   def generate_jwt_token(user)
@@ -101,6 +101,8 @@ class Api::AuthController < ApplicationController
     {
       id: user.id,
       email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
       created_at: user.created_at,
       updated_at: user.updated_at
     }

@@ -29,6 +29,10 @@ Rails.application.routes.draw do
     get 'game_sessions/puzzle/:puzzle_id', to: 'game_sessions#show_or_create'
     put 'game_sessions/:id/complete', to: 'game_sessions#complete'
     
+    # Users
+    get 'users/profile', to: 'users#profile'
+    put 'users/profile', to: 'users#update_profile'
+    
     # AI Puzzle generation
     resources :ai_puzzle, only: [:index, :show, :create]
   end
