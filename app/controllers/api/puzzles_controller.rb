@@ -69,9 +69,12 @@ class Api::PuzzlesController < ApplicationController
     # Calculate has_more: true if current offset + returned count is less than total
     has_more = limit.present? && (offset.to_i + puzzles_count < total_count)
     
+    # Use summary mode for list views (skip expensive operations like letters generation)
+    summary_mode = params[:summary] == 'true' || params[:summary] == true
+    
     render json: {
       success: true,
-      puzzles: puzzles_array.map { |puzzle| puzzle_json(puzzle) },
+      puzzles: puzzles_array.map { |puzzle| puzzle_json(puzzle, summary: summary_mode) },
       total: total_count,
       offset: offset || 0,
       limit: limit || puzzles_count,
@@ -158,7 +161,7 @@ class Api::PuzzlesController < ApplicationController
     )
   end
 
-  def puzzle_json(puzzle)
+  def puzzle_json(puzzle, summary: false)
     base_json = {
       id: puzzle.id.to_s,
       difficulty: puzzle.difficulty,
@@ -175,46 +178,61 @@ class Api::PuzzlesController < ApplicationController
       title: puzzle.puzzle_data&.dig('title') || puzzle.description&.truncate(50)
     }
     
-    # Add game-type-specific fields based on game_type
+    # In summary mode, only include minimal data needed for list views
+    return base_json if summary
+    
+    # Full data for game views - delegate to game-type-specific helpers
     case puzzle.game_type
     when 'krossword', nil
-      # Legacy krossword or new krossword
-      base_json.merge({
-        description: puzzle.description,
-        clues: parse_clues(puzzle.clues),
-        puzzle_data: puzzle.puzzle_data
-      })
+      base_json.merge(krossword_json(puzzle))
     when 'konundrum'
-      # Konundrum puzzle - use puzzle_data
-      base_json.merge({
-        puzzle_data: puzzle.puzzle_data,
-        clue: puzzle.clue,
-        words: puzzle.words,
-        letters: puzzle.letters,
-        seed: puzzle.seed
-      })
+      base_json.merge(konundrum_json(puzzle))
     when 'krisskross'
-      # KrissKross puzzle - use puzzle_data
-      base_json.merge({
-        puzzle_data: puzzle.puzzle_data,
-        clue: puzzle.clue,
-        words: puzzle.krisskross_words,
-        layout: puzzle.krisskross_layout
-      })
+      base_json.merge(krisskross_json(puzzle))
     when 'konstructor'
-      # Konstructor puzzle - use puzzle_data
-      base_json.merge({
-        puzzle_data: puzzle.puzzle_data,
-        words: puzzle.konstructor_words
-      })
+      base_json.merge(konstructor_json(puzzle))
     else
       # Fallback for any puzzle
-      base_json.merge({
-        description: puzzle.description,
-        clues: parse_clues(puzzle.clues),
-        puzzle_data: puzzle.puzzle_data
-      })
+      base_json.merge(krossword_json(puzzle)) # Default to krossword format
     end
+  end
+  
+  # Helper for Krossword puzzle JSON
+  def krossword_json(puzzle)
+    {
+      description: puzzle.description,
+      clues: parse_clues(puzzle.clues),
+      puzzle_data: puzzle.puzzle_data
+    }
+  end
+  
+  # Helper for Konundrum puzzle JSON
+  def konundrum_json(puzzle)
+    {
+      puzzle_data: puzzle.puzzle_data,
+      clue: puzzle.clue,
+      words: puzzle.words,
+      letters: puzzle.letters, # This will generate from seed if needed
+      seed: puzzle.seed
+    }
+  end
+  
+  # Helper for KrissKross puzzle JSON
+  def krisskross_json(puzzle)
+    {
+      puzzle_data: puzzle.puzzle_data,
+      clue: puzzle.clue,
+      words: puzzle.krisskross_words,
+      layout: puzzle.krisskross_layout
+    }
+  end
+  
+  # Helper for Konstructor puzzle JSON
+  def konstructor_json(puzzle)
+    {
+      puzzle_data: puzzle.puzzle_data,
+      words: puzzle.konstructor_words
+    }
   end
 
   def parse_clues(clues)

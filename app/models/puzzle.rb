@@ -136,7 +136,18 @@ class Puzzle < ApplicationRecord
   end
   
   def letters
-    puzzle_data&.dig('letters') || []
+    # Return stored letters if present, otherwise generate from seed
+    stored_letters = puzzle_data&.dig('letters')
+    return stored_letters if stored_letters.present?
+    
+    # Generate letters from seed if available
+    seed_value = seed
+    words_array = words
+    if seed_value.present? && words_array.present? && words_array.any?
+      generate_letters_from_seed(words_array, seed_value)
+    else
+      []
+    end
   end
   
   def seed
@@ -201,6 +212,14 @@ class Puzzle < ApplicationRecord
   
   private
   
+  def generate_letters_from_seed(words, seed_value)
+    # Convert seed to integer if it's a string (for backward compatibility)
+    seed_int = seed_value.is_a?(String) ? seed_value.hash.abs : seed_value.to_i
+    rng = Random.new(seed_int)
+    all_letters = words.join('').split('')
+    all_letters.shuffle(random: rng)
+  end
+  
   def validate_puzzle_data_structure
     return unless puzzle_data.present?
     
@@ -223,6 +242,11 @@ class Puzzle < ApplicationRecord
     unless puzzle_data.is_a?(Hash)
       errors.add(:puzzle_data, "must be a hash for krossword puzzles")
       return
+    end
+    
+    # Validate puzzle_clue is present and is a string
+    unless puzzle_data['puzzle_clue'].is_a?(String) && puzzle_data['puzzle_clue'].present?
+      errors.add(:puzzle_data, "must contain 'puzzle_clue' string for krossword puzzles")
     end
     
     # Clues are required for krosswords (unless migrating from old structure)
@@ -254,9 +278,17 @@ class Puzzle < ApplicationRecord
       return
     end
     
-    errors.add(:puzzle_data, "must contain 'clue' string") unless puzzle_data['clue'].is_a?(String) && puzzle_data['clue'].present?
+    # Validate puzzle_clue is present and is a string
+    unless puzzle_data['puzzle_clue'].is_a?(String) && puzzle_data['puzzle_clue'].present?
+      errors.add(:puzzle_data, "must contain 'puzzle_clue' string for konundrum puzzles")
+    end
+    
     errors.add(:puzzle_data, "must contain 'words' array") unless puzzle_data['words'].is_a?(Array) && puzzle_data['words'].present?
-    errors.add(:puzzle_data, "must contain 'letters' array") unless puzzle_data['letters'].is_a?(Array) && puzzle_data['letters'].present?
+    
+    # Letters are optional if seed is present (letters can be generated from seed)
+    unless puzzle_data['letters'].present? || puzzle_data['seed'].present?
+      errors.add(:puzzle_data, "must contain either 'letters' array or 'seed' for konundrum puzzles")
+    end
     
     # Validate words are strings
     if puzzle_data['words'].is_a?(Array)
@@ -265,9 +297,15 @@ class Puzzle < ApplicationRecord
           errors.add(:puzzle_data, "words[#{index}] must be a non-empty string")
         end
       end
+      
+      # Validate all words have different lengths
+      word_lengths = puzzle_data['words'].map { |w| w.to_s.length }
+      if word_lengths.length != word_lengths.uniq.length
+        errors.add(:puzzle_data, "all words in konundrum puzzles must have different lengths")
+      end
     end
     
-    # Validate letters are strings
+    # Validate letters are strings (if present)
     if puzzle_data['letters'].is_a?(Array)
       puzzle_data['letters'].each_with_index do |letter, index|
         unless letter.is_a?(String) && letter.length == 1
@@ -276,9 +314,11 @@ class Puzzle < ApplicationRecord
       end
     end
     
-    # Seed is optional
-    if puzzle_data['seed'].present? && !puzzle_data['seed'].is_a?(String)
-      errors.add(:puzzle_data, "seed must be a string if provided")
+    # Seed can be integer or string
+    if puzzle_data['seed'].present?
+      unless puzzle_data['seed'].is_a?(String) || puzzle_data['seed'].is_a?(Integer) || puzzle_data['seed'].is_a?(Numeric)
+        errors.add(:puzzle_data, "seed must be a string or number if provided")
+      end
     end
   end
   
@@ -286,6 +326,11 @@ class Puzzle < ApplicationRecord
     unless puzzle_data.is_a?(Hash)
       errors.add(:puzzle_data, "must be a hash for krisskross puzzles")
       return
+    end
+    
+    # Validate puzzle_clue is present and is a string
+    unless puzzle_data['puzzle_clue'].is_a?(String) && puzzle_data['puzzle_clue'].present?
+      errors.add(:puzzle_data, "must contain 'puzzle_clue' string for krisskross puzzles")
     end
     
     errors.add(:puzzle_data, "must contain 'clue' string") unless puzzle_data['clue'].is_a?(String) && puzzle_data['clue'].present?
@@ -298,6 +343,12 @@ class Puzzle < ApplicationRecord
         unless word.is_a?(String) && word.present?
           errors.add(:puzzle_data, "words[#{index}] must be a non-empty string")
         end
+      end
+      
+      # Validate all words have different lengths
+      word_lengths = puzzle_data['words'].map { |w| w.to_s.length }
+      if word_lengths.length != word_lengths.uniq.length
+        errors.add(:puzzle_data, "all words in krisskross puzzles must have different lengths")
       end
     end
     
@@ -323,6 +374,11 @@ class Puzzle < ApplicationRecord
     unless puzzle_data.is_a?(Hash)
       errors.add(:puzzle_data, "must be a hash for konstructor puzzles")
       return
+    end
+    
+    # Validate puzzle_clue is present and is a string
+    unless puzzle_data['puzzle_clue'].is_a?(String) && puzzle_data['puzzle_clue'].present?
+      errors.add(:puzzle_data, "must contain 'puzzle_clue' string for konstructor puzzles")
     end
     
     errors.add(:puzzle_data, "must contain 'words' array") unless puzzle_data['words'].is_a?(Array) && puzzle_data['words'].present?

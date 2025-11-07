@@ -36,12 +36,12 @@ if Rails.env.development? || Rails.env.staging?
   # ==========================================
   krossword_puzzles = [
     {
-      title: "Animal Kingdom",
       difficulty: "Easy",
       rating: 2,
       is_published: true,
       game_type: 'krossword',
       puzzle_data: {
+        puzzle_clue: "Creatures great and small",
         clues: [
           { "clue" => "Man's best friend", "answer" => "DOG" },
           { "clue" => "King of the jungle", "answer" => "LION" },
@@ -49,17 +49,16 @@ if Rails.env.development? || Rails.env.staging?
           { "clue" => "Flying mammal", "answer" => "BAT" },
           { "clue" => "Fastest land animal", "answer" => "CHEETAH" },
           { "clue" => "Tallest animal", "answer" => "GIRAFFE" }
-        ],
-        description: "All about our furry and feathered friends"
+        ]
       }
     },
     {
-      title: "Food & Cooking",
       difficulty: "Medium",
       rating: 3,
       is_published: true,
       game_type: 'krossword',
       puzzle_data: {
+        puzzle_clue: "What's on the menu?",
         clues: [
           { "clue" => "Italian pasta dish", "answer" => "SPAGHETTI" },
           { "clue" => "Sweet breakfast treat", "answer" => "PANCAKE" },
@@ -67,26 +66,24 @@ if Rails.env.development? || Rails.env.staging?
           { "clue" => "Red fruit", "answer" => "TOMATO" },
           { "clue" => "Dairy product", "answer" => "CHEESE" },
           { "clue" => "Grain used for bread", "answer" => "WHEAT" }
-        ],
-        description: "Delicious puzzles about food"
+        ]
       }
     },
     {
-      title: "Outer Space",
       difficulty: "Hard",
       rating: 3,
       is_published: true,
       game_type: 'krossword',
       puzzle_data: {
+        puzzle_clue: "The final frontier",
         clues: [
           { "clue" => "Our home planet", "answer" => "EARTH" },
           { "clue" => "Red planet", "answer" => "MARS" },
           { "clue" => "Largest planet", "answer" => "JUPITER" },
           { "clue" => "Ringed planet", "answer" => "SATURN" },
-          { "clue" => "Closest star to Earth", "answer" => "SUN" },
+          { "clue" => "Our star", "answer" => "SUN" },
           { "clue" => "Natural satellite", "answer" => "MOON" }
-        ],
-        description: "Journey through the cosmos"
+        ]
       }
     }
   ]
@@ -96,64 +93,66 @@ if Rails.env.development? || Rails.env.staging?
   # ==========================================
   krisskross_puzzles = [
     {
-      title: "Ocean Life",
       difficulty: "Easy",
       rating: 2,
       is_published: true,
       game_type: 'krisskross',
       puzzle_data: {
+        puzzle_clue: "Deep blue waters",
         clue: "Ocean",
-        words: ["WATER", "WAVE", "CORAL"],
+        words: ["WATER", "WAVE", "TURTLE"],
         layout: {
-          rows: 4,
-          cols: 5,
+          rows: 5,
+          cols: 6,
           table: [
-            ["#", "#", "#", "W", "#"],
-            ["C", "O", "R", "A", "L"],
-            ["#", "#", "#", "V", "#"],
-            ["W", "A", "T", "E", "R"]
+            ["#", "#", "#", "#", "W", "#"],
+            ["T", "U", "R", "T", "L", "E"],
+            ["#", "#", "#", "#", "V", "#"],
+            ["#", "#", "#", "#", "E", "#"],
+            ["W", "A", "T", "E", "R", "#"]
           ],
           result: [
-            { clue: "", answer: "WATER", startx: 1, starty: 4, position: 1, orientation: "across" },
-            { clue: "", answer: "WAVE", startx: 4, starty: 1, position: 2, orientation: "down" },
-            { clue: "", answer: "CORAL", startx: 1, starty: 2, position: 3, orientation: "across" }
+            { clue: "", answer: "WATER", startx: 1, starty: 5, position: 1, orientation: "across" },
+            { clue: "", answer: "WAVE", startx: 5, starty: 1, position: 2, orientation: "down" },
+            { clue: "", answer: "TURTLE", startx: 1, starty: 2, position: 3, orientation: "across" }
           ]
         }
       }
     },
     {
-      title: "Animals",
       difficulty: "Easy",
       rating: 2,
       is_published: true,
       game_type: 'krisskross',
       puzzle_data: {
+        puzzle_clue: "Wild kingdom",
         clue: "Animals",
-        words: ["TIGER", "BEAR", "DEER"],
+        words: ["TIGER", "BEAR", "PANTHER"],
         layout: {
-          rows: 4,
-          cols: 5,
+          rows: 5,
+          cols: 7,
           table: [
-            ["#", "#", "#", "B", "#"],
-            ["T", "I", "G", "E", "R"],
-            ["#", "#", "#", "A", "#"],
-            ["D", "E", "E", "R", "#"]
+            ["#", "#", "#", "#", "B", "#", "#"],
+            ["P", "A", "N", "T", "H", "E", "R"],
+            ["#", "#", "#", "#", "A", "#", "#"],
+            ["T", "I", "G", "E", "R", "#", "#"],
+            ["#", "#", "#", "#", "#", "#", "#"]
           ],
           result: [
-            { clue: "", answer: "TIGER", startx: 1, starty: 2, position: 1, orientation: "across" },
-            { clue: "", answer: "BEAR", startx: 4, starty: 1, position: 2, orientation: "down" },
-            { clue: "", answer: "DEER", startx: 1, starty: 4, position: 3, orientation: "across" }
+            { clue: "", answer: "TIGER", startx: 1, starty: 4, position: 1, orientation: "across" },
+            { clue: "", answer: "BEAR", startx: 5, starty: 1, position: 2, orientation: "down" },
+            { clue: "", answer: "PANTHER", startx: 1, starty: 2, position: 3, orientation: "across" }
           ]
         }
       }
     },
     {
-      title: "Sweet Treats",
       difficulty: "Easy",
       rating: 2,
       is_published: true,
       game_type: 'krisskross',
       puzzle_data: {
+        puzzle_clue: "Sweet endings",
         clue: "Desserts",
         words: ["CAKE", "COOKIE", "PIE"],
         layout: {
@@ -180,9 +179,8 @@ if Rails.env.development? || Rails.env.staging?
   # Konundrum Puzzles (Multi-word Jumble)
   # ==========================================
   # Generate letters from words (shuffled) - using deterministic approach based on seed
-  def generate_letters_from_words(words, seed_string)
+  def generate_letters_from_words(words, seed)
     # Use seed to create deterministic shuffle
-    seed = seed_string.hash.abs
     rng = Random.new(seed)
     letters = words.join('').split('')
     # Deterministic shuffle using seeded random
@@ -190,94 +188,104 @@ if Rails.env.development? || Rails.env.staging?
   end
 
   konundrum_puzzles = [
-    # Themed puzzles
-    { words: ['FISH', 'SHARK', 'DOLPHIN'], theme: 'Ocean Life', difficulty: 'Easy', rating: 2 },
-    { words: ['WAVE', 'BEACH', 'SAND'], theme: 'Beach', difficulty: 'Easy', rating: 2 },
-    { words: ['FOREST', 'TREE', 'DEER'], theme: 'Forest', difficulty: 'Easy', rating: 2 }
-  ]
-
-  konundrum_puzzles_data = konundrum_puzzles.map do |puzzle|
-    words = puzzle[:words]
-    clue = puzzle[:theme] == 'clueless' ? 'clueless' : puzzle[:theme]
-    seed_string = "#{clue}-#{words.join('-')}"
-    letters = generate_letters_from_words(words, seed_string)
-    
     {
-      title: "#{clue == 'clueless' ? 'Themeless' : clue} Challenge",
-      difficulty: puzzle[:difficulty],
-      rating: puzzle[:rating],
+      difficulty: "Easy",
+      rating: 2,
       is_published: true,
       game_type: 'konundrum',
       puzzle_data: {
-        clue: clue,
-        words: words,
-        letters: letters,
-        seed: seed_string
+        puzzle_clue: "Underwater world",
+        words: ['FISH', 'SHARK', 'DOLPHIN'],
+        seed: 20241107
+      }
+    },
+    {
+      difficulty: "Easy",
+      rating: 2,
+      is_published: true,
+      game_type: 'konundrum',
+      puzzle_data: {
+        puzzle_clue: "Sandy shores",
+        words: ['WAVE', 'BEACH', 'SHELLS'],
+        seed: 20241108
+      }
+    },
+    {
+      difficulty: "Easy",
+      rating: 2,
+      is_published: true,
+      game_type: 'konundrum',
+      puzzle_data: {
+        puzzle_clue: "Woodland wanderers",
+        words: ['FOREST', 'BIRCH', 'DEER'],
+        seed: 20241109
       }
     }
-  end
+  ]
+
+  konundrum_puzzles_data = konundrum_puzzles
 
   # ==========================================
   # Konstructor Puzzles (Crossword Builder)
   # ==========================================
   konstructor_puzzles = [
     {
-      title: "Nature Words",
       difficulty: "Easy",
       rating: 2,
       is_published: true,
       game_type: 'konstructor',
       puzzle_data: {
+        puzzle_clue: "Mother Nature's domain",
         words: ['OCEAN', 'TREE', 'SUN', 'MOUNTAIN', 'FOREST', 'RIVER', 'LAKE', 'STORM', 'CLOUD', 'WIND']
       }
     },
     {
-      title: "Animal Kingdom",
       difficulty: "Easy",
       rating: 2,
       is_published: true,
       game_type: 'konstructor',
       puzzle_data: {
+        puzzle_clue: "Fur and feathers",
         words: ['TIGER', 'ELEPHANT', 'LION', 'BEAR', 'EAGLE', 'SHARK', 'WHALE', 'PANDA', 'WOLF', 'DEER']
       }
     },
     {
-      title: "Food & Drinks",
       difficulty: "Medium",
       rating: 2,
       is_published: true,
       game_type: 'konstructor',
       puzzle_data: {
+        puzzle_clue: "Taste sensations",
         words: ['PIZZA', 'COFFEE', 'BREAD', 'SALAD', 'APPLE', 'BANANA', 'ORANGE', 'CHEESE', 'MILK', 'JUICE']
       }
     },
     {
-      title: "Technology",
       difficulty: "Medium",
       rating: 3,
       is_published: true,
       game_type: 'konstructor',
       puzzle_data: {
+        puzzle_clue: "Digital age essentials",
         words: ['COMPUTER', 'MOUSE', 'KEYBOARD', 'SCREEN', 'PHONE', 'TABLET', 'LAPTOP', 'CAMERA', 'SPEAKER', 'ROUTER']
       }
     },
     {
-      title: "Sports",
       difficulty: "Hard",
       rating: 3,
       is_published: true,
       game_type: 'konstructor',
       puzzle_data: {
+        puzzle_clue: "Game on!",
         words: ['SOCCER', 'BASKETBALL', 'TENNIS', 'SWIMMING', 'BASEBALL', 'FOOTBALL', 'GOLF', 'HOCKEY', 'VOLLEYBALL', 'RUNNING']
       }
     },
     {
-      title: "Music",
       difficulty: "Medium",
       rating: 2,
       is_published: true,
       game_type: 'konstructor',
       puzzle_data: {
+        puzzle_clue: "Harmony and rhythm",
         words: ['GUITAR', 'PIANO', 'DRUMS', 'VIOLIN', 'TRUMPET', 'FLUTE', 'SAXOPHONE', 'HARMONICA', 'BANJO', 'CELLO']
       }
     }
@@ -341,9 +349,6 @@ if Rails.env.development? || Rails.env.staging?
         puzzle.game_type = 'krossword'
         puzzle.challenge_date = challenge_date
         puzzle.puzzle_data = krossword_puzzle[:puzzle_data]
-        if krossword_puzzle[:puzzle_data][:description].present?
-          puzzle.description = krossword_puzzle[:puzzle_data][:description]
-        end
         if krossword_puzzle[:puzzle_data][:clues].present?
           puzzle.clues = krossword_puzzle[:puzzle_data][:clues]
         end
