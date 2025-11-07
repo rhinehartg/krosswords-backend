@@ -5,7 +5,7 @@
 # Create admin users
 if Rails.env.development? || Rails.env.staging?
   # Create default admin user
-  admin_user = AdminUser.find_or_create_by!(email: 'admin@example.com') do |user|
+  AdminUser.find_or_create_by!(email: 'admin@example.com') do |user|
     user.password = 'password'
     user.password_confirmation = 'password'
   end
@@ -168,15 +168,6 @@ if Rails.env.development? || Rails.env.staging?
   # ==========================================
   # Konundrum Puzzles (Multi-word Jumble)
   # ==========================================
-  # Generate letters from words (shuffled) - using deterministic approach based on seed
-  def generate_letters_from_words(words, seed)
-    # Use seed to create deterministic shuffle
-    rng = Random.new(seed)
-    letters = words.join('').split('')
-    # Deterministic shuffle using seeded random
-    letters.shuffle(random: rng)
-  end
-
   konundrum_puzzles = [
     {
       is_published: true,
@@ -207,8 +198,6 @@ if Rails.env.development? || Rails.env.staging?
     }
   ]
 
-  konundrum_puzzles_data = konundrum_puzzles
-
   # ==========================================
   # Konstructor Puzzles (Crossword Builder)
   # ==========================================
@@ -230,8 +219,6 @@ if Rails.env.development? || Rails.env.staging?
       }
     },
     {
-      difficulty: "Medium",
-      rating: 2,
       is_published: true,
       game_type: 'konstructor',
       puzzle_data: {
@@ -256,8 +243,6 @@ if Rails.env.development? || Rails.env.staging?
       }
     },
     {
-      difficulty: "Medium",
-      rating: 2,
       is_published: true,
       game_type: 'konstructor',
       puzzle_data: {
@@ -282,8 +267,8 @@ if Rails.env.development? || Rails.env.staging?
   # Create challenges for each puzzle type and date
   challenge_dates.each_with_index do |challenge_date, date_index|
     # Konundrum challenge - cycle through puzzles
-    konundrum_index = date_index % konundrum_puzzles_data.length
-    konundrum_puzzle = konundrum_puzzles_data[konundrum_index]
+    konundrum_index = date_index % konundrum_puzzles.length
+    konundrum_puzzle = konundrum_puzzles[konundrum_index]
     Puzzle.find_or_create_by!(
       game_type: 'konundrum',
       challenge_date: challenge_date
@@ -319,9 +304,6 @@ if Rails.env.development? || Rails.env.staging?
         puzzle.game_type = 'krossword'
         puzzle.challenge_date = challenge_date
         puzzle.puzzle_data = krossword_puzzle[:puzzle_data]
-        if krossword_puzzle[:puzzle_data][:clues].present?
-          puzzle.clues = krossword_puzzle[:puzzle_data][:clues]
-        end
       end
     end
     

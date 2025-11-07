@@ -74,12 +74,8 @@ class Puzzle < ApplicationRecord
   
   # For Krossword: clues, description, layout
   def clues
-    # Legacy puzzles use the clues column, new ones use puzzle_data
-    if game_type.nil? || (game_type == 'krossword' && puzzle_data.blank?)
-      read_attribute(:clues)
-    else
-      puzzle_data&.dig('clues') || []
-    end
+    # All clues are now stored in puzzle_data
+    puzzle_data&.dig('clues') || []
   end
   
   def description
@@ -186,8 +182,8 @@ class Puzzle < ApplicationRecord
       errors.add(:puzzle_data, "must contain 'puzzle_clue' string for krossword puzzles")
     end
     
-    # Clues are required for krosswords (unless migrating from old structure)
-    if puzzle_data['clues'].blank? && clues.blank?
+    # Clues are required for krosswords
+    if puzzle_data['clues'].blank?
       errors.add(:puzzle_data, "must contain 'clues' array for krossword puzzles")
     end
     
