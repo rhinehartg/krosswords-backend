@@ -88,20 +88,6 @@ if Rails.env.development? || Rails.env.staging?
         ],
         description: "Journey through the cosmos"
       }
-    },
-    {
-      title: "Draft Puzzle",
-      difficulty: "Easy",
-      rating: 1,
-      is_published: false,
-      game_type: 'krossword',
-      puzzle_data: {
-        clues: [
-          { "clue" => "Test clue", "answer" => "TEST" },
-          { "clue" => "Another test", "answer" => "DEMO" }
-        ],
-        description: "This puzzle is not yet published"
-      }
     }
   ]
 
@@ -187,86 +173,6 @@ if Rails.env.development? || Rails.env.staging?
           ]
         }
       }
-    },
-    {
-      title: "Sports",
-      difficulty: "Medium",
-      rating: 2,
-      is_published: true,
-      game_type: 'krisskross',
-      puzzle_data: {
-        clue: "Sports",
-        words: ["SOCCER", "BALL", "GOAL", "TEAM"],
-        layout: {
-          rows: 4,
-          cols: 7,
-          table: [
-            ["#", "#", "G", "#", "#", "T", "#"],
-            ["#", "S", "O", "C", "C", "E", "R"],
-            ["#", "#", "A", "#", "#", "A", "#"],
-            ["B", "A", "L", "L", "#", "M", "#"]
-          ],
-          result: [
-            { clue: "", answer: "SOCCER", startx: 2, starty: 2, position: 1, orientation: "across" },
-            { clue: "", answer: "BALL", startx: 1, starty: 4, position: 2, orientation: "across" },
-            { clue: "", answer: "GOAL", startx: 3, starty: 1, position: 3, orientation: "down" },
-            { clue: "", answer: "TEAM", startx: 6, starty: 1, position: 4, orientation: "down" }
-          ]
-        }
-      }
-    },
-    {
-      title: "Colors",
-      difficulty: "Easy",
-      rating: 2,
-      is_published: true,
-      game_type: 'krisskross',
-      puzzle_data: {
-        clue: "Colors",
-        words: ["RED", "BLUE", "YELLOW"],
-        layout: {
-          rows: 4,
-          cols: 6,
-          table: [
-            ["#", "R", "#", "B", "#", "#"],
-            ["Y", "E", "L", "L", "O", "W"],
-            ["#", "D", "#", "U", "#", "#"],
-            ["#", "#", "#", "E", "#", "#"]
-          ],
-          result: [
-            { clue: "", answer: "RED", startx: 2, starty: 1, position: 1, orientation: "down" },
-            { clue: "", answer: "BLUE", startx: 4, starty: 1, position: 2, orientation: "down" },
-            { clue: "", answer: "YELLOW", startx: 1, starty: 2, position: 3, orientation: "across" }
-          ]
-        }
-      }
-    },
-    {
-      title: "Music",
-      difficulty: "Medium",
-      rating: 2,
-      is_published: true,
-      game_type: 'krisskross',
-      puzzle_data: {
-        clue: "Music",
-        words: ["PIANO", "SONG", "MUSIC"],
-        layout: {
-          rows: 5,
-          cols: 5,
-          table: [
-            ["#", "M", "#", "#", "#"],
-            ["#", "U", "#", "S", "#"],
-            ["#", "S", "#", "O", "#"],
-            ["P", "I", "A", "N", "O"],
-            ["#", "C", "#", "G", "#"]
-          ],
-          result: [
-            { clue: "", answer: "PIANO", startx: 1, starty: 4, position: 1, orientation: "across" },
-            { clue: "", answer: "SONG", startx: 4, starty: 2, position: 2, orientation: "down" },
-            { clue: "", answer: "MUSIC", startx: 2, starty: 1, position: 3, orientation: "down" }
-          ]
-        }
-      }
     }
   ]
 
@@ -285,19 +191,9 @@ if Rails.env.development? || Rails.env.staging?
 
   konundrum_puzzles = [
     # Themed puzzles
-    { words: ['OCEAN', 'SHARK', 'WHALE'], theme: 'Ocean Life', difficulty: 'Easy', rating: 2 },
+    { words: ['FISH', 'SHARK', 'DOLPHIN'], theme: 'Ocean Life', difficulty: 'Easy', rating: 2 },
     { words: ['WAVE', 'BEACH', 'SAND'], theme: 'Beach', difficulty: 'Easy', rating: 2 },
-    { words: ['FOREST', 'TREE', 'DEER'], theme: 'Forest', difficulty: 'Easy', rating: 2 },
-    { words: ['PANDA', 'BEAR', 'TIGER'], theme: 'Wild Animals', difficulty: 'Easy', rating: 2 },
-    { words: ['PIZZA', 'PASTA', 'RISOTTO'], theme: 'Italian Food', difficulty: 'Medium', rating: 2 },
-    { words: ['GUITAR', 'VIOLIN', 'CELLO'], theme: 'String Instruments', difficulty: 'Medium', rating: 2 },
-    { words: ['PLANET', 'STAR', 'COMET'], theme: 'Space', difficulty: 'Easy', rating: 2 },
-    { words: ['SNOW', 'RAIN', 'WIND'], theme: 'Weather', difficulty: 'Easy', rating: 2 },
-    { words: ['WIZARD', 'DRAGON', 'MAGIC'], theme: 'Fantasy', difficulty: 'Easy', rating: 2 },
-    # Themeless puzzles (clueless)
-    { words: ['OCEAN', 'TIGER', 'LIGHT'], theme: 'clueless', difficulty: 'Hard', rating: 2 },
-    { words: ['PIZZA', 'PLANET', 'GHOST'], theme: 'clueless', difficulty: 'Hard', rating: 2 },
-    { words: ['WIZARD', 'BURGER', 'RIVER'], theme: 'clueless', difficulty: 'Hard', rating: 2 }
+    { words: ['FOREST', 'TREE', 'DEER'], theme: 'Forest', difficulty: 'Easy', rating: 2 }
   ]
 
   konundrum_puzzles_data = konundrum_puzzles.map do |puzzle|
@@ -322,126 +218,151 @@ if Rails.env.development? || Rails.env.staging?
   end
 
   # ==========================================
-  # Create all puzzles
+  # Konstructor Puzzles (Crossword Builder)
   # ==========================================
-  
-  # Create Krossword puzzles
-  krossword_puzzles.each do |puzzle_data|
-    Puzzle.find_or_create_by!(title: puzzle_data[:title]) do |puzzle|
-      puzzle.difficulty = puzzle_data[:difficulty]
-      puzzle.rating = puzzle_data[:rating]
-      puzzle.is_published = puzzle_data[:is_published]
-      puzzle.game_type = puzzle_data[:game_type]
-      puzzle.puzzle_data = puzzle_data[:puzzle_data]
-      # For backward compatibility, also set description and clues on legacy columns
-      if puzzle_data[:puzzle_data][:description].present?
-        puzzle.description = puzzle_data[:puzzle_data][:description]
-      end
-      if puzzle_data[:puzzle_data][:clues].present?
-        puzzle.clues = puzzle_data[:puzzle_data][:clues]
-      end
-    end
-  end
-
-  # Create KrissKross puzzles
-  krisskross_puzzles.each do |puzzle_data|
-    Puzzle.find_or_create_by!(title: puzzle_data[:title]) do |puzzle|
-      puzzle.difficulty = puzzle_data[:difficulty]
-      puzzle.rating = puzzle_data[:rating]
-      puzzle.is_published = puzzle_data[:is_published]
-      puzzle.game_type = puzzle_data[:game_type]
-      puzzle.puzzle_data = puzzle_data[:puzzle_data]
-    end
-  end
-
-  # Create Konundrum puzzles
-  konundrum_puzzles_data.each do |puzzle_data|
-    Puzzle.find_or_create_by!(title: puzzle_data[:title]) do |puzzle|
-      puzzle.difficulty = puzzle_data[:difficulty]
-      puzzle.rating = puzzle_data[:rating]
-      puzzle.is_published = puzzle_data[:is_published]
-      puzzle.game_type = puzzle_data[:game_type]
-      puzzle.puzzle_data = puzzle_data[:puzzle_data]
-    end
-  end
+  konstructor_puzzles = [
+    {
+      title: "Nature Words",
+      difficulty: "Easy",
+      rating: 2,
+      is_published: true,
+      game_type: 'konstructor',
+      puzzle_data: {
+        words: ['OCEAN', 'TREE', 'SUN', 'MOUNTAIN', 'FOREST', 'RIVER', 'LAKE', 'STORM', 'CLOUD', 'WIND']
+      }
+    },
+    {
+      title: "Animal Kingdom",
+      difficulty: "Easy",
+      rating: 2,
+      is_published: true,
+      game_type: 'konstructor',
+      puzzle_data: {
+        words: ['TIGER', 'ELEPHANT', 'LION', 'BEAR', 'EAGLE', 'SHARK', 'WHALE', 'PANDA', 'WOLF', 'DEER']
+      }
+    },
+    {
+      title: "Food & Drinks",
+      difficulty: "Medium",
+      rating: 2,
+      is_published: true,
+      game_type: 'konstructor',
+      puzzle_data: {
+        words: ['PIZZA', 'COFFEE', 'BREAD', 'SALAD', 'APPLE', 'BANANA', 'ORANGE', 'CHEESE', 'MILK', 'JUICE']
+      }
+    },
+    {
+      title: "Technology",
+      difficulty: "Medium",
+      rating: 3,
+      is_published: true,
+      game_type: 'konstructor',
+      puzzle_data: {
+        words: ['COMPUTER', 'MOUSE', 'KEYBOARD', 'SCREEN', 'PHONE', 'TABLET', 'LAPTOP', 'CAMERA', 'SPEAKER', 'ROUTER']
+      }
+    },
+    {
+      title: "Sports",
+      difficulty: "Hard",
+      rating: 3,
+      is_published: true,
+      game_type: 'konstructor',
+      puzzle_data: {
+        words: ['SOCCER', 'BASKETBALL', 'TENNIS', 'SWIMMING', 'BASEBALL', 'FOOTBALL', 'GOLF', 'HOCKEY', 'VOLLEYBALL', 'RUNNING']
+      }
+    },
+    {
+      title: "Music",
+      difficulty: "Medium",
+      rating: 2,
+      is_published: true,
+      game_type: 'konstructor',
+      puzzle_data: {
+        words: ['GUITAR', 'PIANO', 'DRUMS', 'VIOLIN', 'TRUMPET', 'FLUTE', 'SAXOPHONE', 'HARMONICA', 'BANJO', 'CELLO']
+      }
+    }
+  ]
 
   # ==========================================
-  # Create Challenge Puzzles (Daily & Weekly)
+  # Create Challenge Puzzles (All puzzles are challenges)
   # ==========================================
   
   today = Date.today
   
-  # Daily Challenges: Create challenges for 7 days back and 7 days forward
-  # Konundrum and KrissKross - challenge_date is the specific day
-  (-7..7).each do |day_offset|
-    challenge_date = today + day_offset.days
-    
-    # Cycle through Konundrum puzzles
-    konundrum_index = day_offset.abs % konundrum_puzzles_data.length
+  # Generate challenge dates: 14 days in the past, today, and 29 days in the future
+  # This gives us past, present, and future puzzles for testing
+  past_dates = (-14..-1).map { |i| today + i.days }
+  future_dates = (1..29).map { |i| today + i.days }
+  challenge_dates = past_dates + [today] + future_dates
+  
+  # Create challenges for each puzzle type and date
+  challenge_dates.each_with_index do |challenge_date, date_index|
+    # Konundrum challenge - cycle through puzzles
+    konundrum_index = date_index % konundrum_puzzles_data.length
     konundrum_puzzle = konundrum_puzzles_data[konundrum_index]
-    
-    # Create daily Konundrum challenge
     Puzzle.find_or_create_by!(
       game_type: 'konundrum',
       challenge_date: challenge_date
     ) do |puzzle|
-      puzzle.title = "#{konundrum_puzzle[:title]} - #{challenge_date.strftime('%B %d, %Y')}"
       puzzle.difficulty = konundrum_puzzle[:difficulty]
       puzzle.rating = konundrum_puzzle[:rating]
       puzzle.is_published = true
       puzzle.game_type = 'konundrum'
       puzzle.challenge_date = challenge_date
       puzzle.puzzle_data = konundrum_puzzle[:puzzle_data]
-      # clue is already in puzzle_data, no need to set separately
     end
     
-    # Cycle through KrissKross puzzles
-    krisskross_index = day_offset.abs % krisskross_puzzles.length
+    # KrissKross challenge - cycle through puzzles
+    krisskross_index = date_index % krisskross_puzzles.length
     krisskross_puzzle = krisskross_puzzles[krisskross_index]
-    
-    # Create daily KrissKross challenge
     Puzzle.find_or_create_by!(
       game_type: 'krisskross',
       challenge_date: challenge_date
     ) do |puzzle|
-      puzzle.title = "#{krisskross_puzzle[:title]} - #{challenge_date.strftime('%B %d, %Y')}"
       puzzle.difficulty = krisskross_puzzle[:difficulty]
       puzzle.rating = krisskross_puzzle[:rating]
       puzzle.is_published = true
       puzzle.game_type = 'krisskross'
       puzzle.challenge_date = challenge_date
       puzzle.puzzle_data = krisskross_puzzle[:puzzle_data]
-      # clue is already in puzzle_data, no need to set separately
     end
-  end
-  
-  # Weekly Challenges: Create challenges for 4 weeks back and 4 weeks forward
-  # Krossword - challenge_date is the Saturday (end of week)
-  (-4..4).each do |week_offset|
-    week_end = (today + week_offset.weeks).end_of_week - 1.day # Saturday (end_of_week returns Sunday, so subtract 1 day)
     
-    # Cycle through Krossword puzzles
-    krossword_index = week_offset.abs % krossword_puzzles.length
-    krossword_puzzle = krossword_puzzles[krossword_index]
+    # Krossword challenge - weekly (only on Sundays)
+    if challenge_date.wday == 0 # Sunday
+      krossword_index = (date_index / 7) % krossword_puzzles.length
+      krossword_puzzle = krossword_puzzles[krossword_index]
+      Puzzle.find_or_create_by!(
+        game_type: 'krossword',
+        challenge_date: challenge_date
+      ) do |puzzle|
+        puzzle.difficulty = krossword_puzzle[:difficulty]
+        puzzle.rating = krossword_puzzle[:rating]
+        puzzle.is_published = true
+        puzzle.game_type = 'krossword'
+        puzzle.challenge_date = challenge_date
+        puzzle.puzzle_data = krossword_puzzle[:puzzle_data]
+        if krossword_puzzle[:puzzle_data][:description].present?
+          puzzle.description = krossword_puzzle[:puzzle_data][:description]
+        end
+        if krossword_puzzle[:puzzle_data][:clues].present?
+          puzzle.clues = krossword_puzzle[:puzzle_data][:clues]
+        end
+      end
+    end
     
-    # Create weekly Krossword challenge
+    # Konstructor challenge - cycle through puzzles
+    konstructor_index = date_index % konstructor_puzzles.length
+    konstructor_puzzle = konstructor_puzzles[konstructor_index]
     Puzzle.find_or_create_by!(
-      game_type: 'krossword',
-      challenge_date: week_end
+      game_type: 'konstructor',
+      challenge_date: challenge_date
     ) do |puzzle|
-      puzzle.title = "#{krossword_puzzle[:title]} - Week of #{week_end.strftime('%B %d, %Y')}"
-      puzzle.difficulty = krossword_puzzle[:difficulty]
-      puzzle.rating = krossword_puzzle[:rating]
+      puzzle.difficulty = konstructor_puzzle[:difficulty]
+      puzzle.rating = konstructor_puzzle[:rating]
       puzzle.is_published = true
-      puzzle.game_type = 'krossword'
-      puzzle.challenge_date = week_end # Saturday (end of week)
-      puzzle.puzzle_data = krossword_puzzle[:puzzle_data]
-      if krossword_puzzle[:puzzle_data][:description].present?
-        puzzle.description = krossword_puzzle[:puzzle_data][:description]
-      end
-      if krossword_puzzle[:puzzle_data][:clues].present?
-        puzzle.clues = krossword_puzzle[:puzzle_data][:clues]
-      end
+      puzzle.game_type = 'konstructor'
+      puzzle.challenge_date = challenge_date
+      puzzle.puzzle_data = konstructor_puzzle[:puzzle_data]
     end
   end
 
@@ -451,6 +372,7 @@ if Rails.env.development? || Rails.env.staging?
   puts "   - #{Puzzle.where(game_type: 'krossword').count} Krossword puzzles"
   puts "   - #{Puzzle.where(game_type: 'krisskross').count} KrissKross puzzles"
   puts "   - #{Puzzle.where(game_type: 'konundrum').count} Konundrum puzzles"
+  puts "   - #{Puzzle.where(game_type: 'konstructor').count} Konstructor puzzles"
   puts "   - #{Puzzle.where.not(challenge_date: nil).count} Challenge puzzles (daily & weekly)"
   puts "✅ Admin login: admin@example.com / password"
   puts "✅ Super admin login: superadmin@example.com / admin123"
