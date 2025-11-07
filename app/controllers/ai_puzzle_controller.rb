@@ -100,7 +100,6 @@ class AiPuzzleController < ApplicationController
   def puzzle_json(puzzle)
     base_json = {
       id: puzzle.id.to_s,
-      title: puzzle.title,
       difficulty: puzzle.difficulty,
       rating: puzzle.average_rating.round,
       rating_count: puzzle.rating_count,
@@ -109,7 +108,6 @@ class AiPuzzleController < ApplicationController
       updated_at: puzzle.updated_at.iso8601,
       game_type: puzzle.game_type,
       type: puzzle.type,
-      is_featured: puzzle.is_featured,
       challenge_date: puzzle.challenge_date&.iso8601
     }
     

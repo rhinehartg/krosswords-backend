@@ -152,7 +152,7 @@ class Api::RatingsController < ApplicationController
       id: rating.id,
       rating: rating.rating,
       puzzle_id: rating.puzzle_id,
-      puzzle_title: rating.puzzle.title,
+      puzzle_display: "#{rating.puzzle.game_type || 'Puzzle'} - #{rating.puzzle.challenge_date&.strftime('%b %d, %Y') || 'No date'}",
       user_id: rating.user_id,
       user_email: rating.user.email,
       created_at: rating.created_at,

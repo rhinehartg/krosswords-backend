@@ -10,7 +10,8 @@ ActiveAdmin.register Rating do
       link_to rating.user.email, admin_user_path(rating.user)
     end
     column :puzzle do |rating|
-      link_to rating.puzzle.title, admin_puzzle_path(rating.puzzle)
+      puzzle_display = "#{rating.puzzle.game_type || 'Puzzle'} - #{rating.puzzle.challenge_date&.strftime('%b %d, %Y') || 'No date'}"
+      link_to puzzle_display, admin_puzzle_path(rating.puzzle)
     end
     column :rating do |rating|
       "#{rating.rating} stars"
@@ -27,7 +28,8 @@ ActiveAdmin.register Rating do
         link_to rating.user.email, admin_user_path(rating.user)
       end
       row :puzzle do |rating|
-        link_to rating.puzzle.title, admin_puzzle_path(rating.puzzle)
+        puzzle_display = "#{rating.puzzle.game_type || 'Puzzle'} - #{rating.puzzle.challenge_date&.strftime('%b %d, %Y') || 'No date'}"
+        link_to puzzle_display, admin_puzzle_path(rating.puzzle)
       end
       row :rating do |rating|
         "#{rating.rating} stars"

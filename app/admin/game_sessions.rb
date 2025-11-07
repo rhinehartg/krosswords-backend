@@ -10,7 +10,8 @@ ActiveAdmin.register GameSession do
       link_to session.user.email, admin_user_path(session.user)
     end
     column :puzzle do |session|
-      link_to session.puzzle.title, admin_puzzle_path(session.puzzle)
+      puzzle_display = "#{session.puzzle.game_type || 'Puzzle'} - #{session.puzzle.challenge_date&.strftime('%b %d, %Y') || 'No date'}"
+      link_to puzzle_display, admin_puzzle_path(session.puzzle)
     end
     column :game_type do |session|
       case session.puzzle.game_type
@@ -26,6 +27,10 @@ ActiveAdmin.register GameSession do
         content_tag :span, "KrissKross", 
           class: "status_tag",
           style: "background-color: #ff6b35; color: white;"
+      when 'konstructor'
+        content_tag :span, "Konstructor", 
+          class: "status_tag",
+          style: "background-color: #9b59b6; color: white;"
       else
         content_tag :span, "Krossword (Legacy)", 
           class: "status_tag",
@@ -109,7 +114,8 @@ ActiveAdmin.register GameSession do
         link_to session.user.email, admin_user_path(session.user)
       end
       row :puzzle do |session|
-        link_to session.puzzle.title, admin_puzzle_path(session.puzzle)
+        puzzle_display = "#{session.puzzle.game_type || 'Puzzle'} - #{session.puzzle.challenge_date&.strftime('%b %d, %Y') || 'No date'}"
+        link_to puzzle_display, admin_puzzle_path(session.puzzle)
       end
       row :game_type do |session|
         case session.puzzle.game_type
@@ -122,6 +128,9 @@ ActiveAdmin.register GameSession do
         when 'krisskross'
           content_tag :span, "KrissKross", 
             style: "background-color: #ff6b35; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
+        when 'konstructor'
+          content_tag :span, "Konstructor", 
+            style: "background-color: #9b59b6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
         else
           "Krossword (Legacy)"
         end

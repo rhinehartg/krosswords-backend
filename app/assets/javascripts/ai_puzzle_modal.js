@@ -128,7 +128,7 @@ function generateAIPuzzle() {
   .then(result => {
     if (result.success) {
       statusText.textContent = '✅ Puzzle generated successfully!';
-      statusDetails.textContent = `Title: ${result.puzzle.title} | Words: ${result.puzzle.clues.length}`;
+      statusDetails.textContent = `Game Type: ${result.puzzle.game_type || 'Puzzle'} | Words: ${result.puzzle.clues.length}`;
       generateBtn.textContent = 'Success!';
       generateBtn.style.background = '#28a745';
       

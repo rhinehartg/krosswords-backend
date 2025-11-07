@@ -7,23 +7,24 @@ class Api::PuzzlesController < ApplicationController
     
     # Filter for active challenges if requested
     # Challenges use date ranges:
-    # - Daily challenges (Konundrum, KrissKross): challenge_date represents a single day (must match today)
-    # - Weekly challenges (Krossword): challenge_date represents the end date of the week (Saturday)
+    # - Daily challenges (Konundrum, KrissKross, Konstructor): challenge_date represents a single day (must match today)
+    # - Weekly challenges (Krossword): challenge_date must be on Sunday
     if params[:type] == 'DailyChallenge' || params[:active_challenges] == 'true'
       today = Date.today
-      week_end = today.end_of_week - 1.day # Saturday (end of week, since end_of_week returns Sunday)
       
-      # Daily challenges: Konundrum and KrissKross - match if challenge_date is today
-      daily_puzzles = puzzles.where(challenge_date: today, game_type: ['konundrum', 'krisskross'])
+      # Daily challenges: Konundrum, KrissKross, and Konstructor - match if challenge_date is today
+      daily_puzzles = puzzles.where(challenge_date: today, game_type: ['konundrum', 'krisskross', 'konstructor'])
       
-      # Weekly challenges: Krossword - match if challenge_date is the end of the current week (Saturday)
-      weekly_puzzles = puzzles.where(challenge_date: week_end, game_type: 'krossword')
+      # Weekly challenges: Krossword - match if challenge_date is Sunday (this week's Sunday or next)
+      # Find the Sunday for this week (or next if today is after Sunday)
+      days_until_sunday = (7 - today.wday) % 7
+      sunday = days_until_sunday == 0 ? today : today + days_until_sunday.days
+      weekly_puzzles = puzzles.where(challenge_date: sunday, game_type: 'krossword')
       
       puzzles = daily_puzzles.or(weekly_puzzles)
     else
-      # Exclude challenge puzzles from regular puzzles list
-      # Challenge puzzles should only appear when explicitly requesting active challenges
-      puzzles = puzzles.where(challenge_date: nil)
+      # All puzzles are challenges now, so show all published puzzles
+      # (No filtering needed - all puzzles have challenge_date)
     end
     
     # Apply filters
@@ -32,8 +33,8 @@ class Api::PuzzlesController < ApplicationController
     # Filter by theme/clue in puzzle_data for new puzzle types, or description for legacy
     if params[:theme].present?
       puzzles = puzzles.where(
-        "title ILIKE ? OR description ILIKE ? OR puzzle_data::text ILIKE ?",
-        "%#{params[:theme]}%", "%#{params[:theme]}%", "%#{params[:theme]}%"
+        "description ILIKE ? OR puzzle_data::text ILIKE ?",
+        "%#{params[:theme]}%", "%#{params[:theme]}%"
       )
     end
     
@@ -145,7 +146,6 @@ class Api::PuzzlesController < ApplicationController
   def puzzle_json(puzzle)
     base_json = {
       id: puzzle.id.to_s,
-      title: puzzle.title,
       difficulty: puzzle.difficulty,
       rating: puzzle.average_rating.round,
       rating_count: puzzle.rating_count,
@@ -154,7 +154,6 @@ class Api::PuzzlesController < ApplicationController
       updated_at: puzzle.updated_at.iso8601,
       # Categorization fields
       type: puzzle.type,
-      is_featured: puzzle.is_featured,
       challenge_date: puzzle.challenge_date&.iso8601,
       game_type: puzzle.game_type
     }
@@ -184,6 +183,12 @@ class Api::PuzzlesController < ApplicationController
         clue: puzzle.clue,
         words: puzzle.krisskross_words,
         layout: puzzle.krisskross_layout
+      })
+    when 'konstructor'
+      # Konstructor puzzle - use puzzle_data
+      base_json.merge({
+        puzzle_data: puzzle.puzzle_data,
+        words: puzzle.konstructor_words
       })
     else
       # Fallback for any puzzle

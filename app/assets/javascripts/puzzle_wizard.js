@@ -10,7 +10,6 @@
       difficulty: 'Medium',
       rating: 2,
       is_published: false,
-      is_featured: false,
       challenge_date: '',
       description: '',
       clues: [],
@@ -39,11 +38,9 @@
     resetData: function() {
       this.data = {
         game_type: '',
-        title: '',
         difficulty: 'Medium',
         rating: 2,
         is_published: false,
-        is_featured: false,
         challenge_date: '',
         description: '',
         clues: [],
@@ -490,13 +487,6 @@
         <div class="wizard-step active">
           <h3 style="margin-top: 0; margin-bottom: 24px; color: #374151;">Basic Information</h3>
           <div class="wizard-form-group">
-            <label>Puzzle Title *</label>
-            <input type="text" id="wizard-title" value="${this.data.title || ''}" 
-                   placeholder="e.g., Ocean Adventure" 
-                   onchange="PuzzleWizard.data.title = this.value">
-            <div class="help-text">A descriptive title for your puzzle</div>
-          </div>
-          <div class="wizard-form-group">
             <label>Difficulty *</label>
             <select id="wizard-difficulty" onchange="PuzzleWizard.data.difficulty = this.value">
               <option value="Easy" ${this.data.difficulty === 'Easy' ? 'selected' : ''}>Easy (Green)</option>
@@ -690,14 +680,6 @@
             <div class="help-text">Leave unchecked to save as draft</div>
           </div>
           <div class="wizard-form-group">
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" id="wizard-featured" ${this.data.is_featured ? 'checked' : ''} 
-                     onchange="PuzzleWizard.data.is_featured = this.checked"
-                     style="width: auto; margin-right: 8px;">
-              Mark as featured puzzle
-            </label>
-          </div>
-          <div class="wizard-form-group">
             <label>Challenge Date (Optional)</label>
             <input type="date" id="wizard-challenge-date" value="${this.data.challenge_date || ''}"
                    onchange="PuzzleWizard.data.challenge_date = this.value">
@@ -742,7 +724,6 @@
           <h3 style="margin-top: 0; margin-bottom: 24px; color: #374151;">Review Your Puzzle</h3>
           <div style="background: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
             <h4 style="margin-top: 0;">Basic Info</h4>
-            <p><strong>Title:</strong> ${this.data.title || 'Not set'}</p>
             <p><strong>Game Type:</strong> ${this.data.game_type ? this.data.game_type.charAt(0).toUpperCase() + this.data.game_type.slice(1) : 'Not set'}</p>
             <p><strong>Difficulty:</strong> ${this.data.difficulty}</p>
             <p><strong>Rating:</strong> ${'⭐'.repeat(this.data.rating)}</p>
@@ -754,7 +735,6 @@
           <div style="background: #f9fafb; padding: 24px; border-radius: 8px;">
             <h4 style="margin-top: 0;">Settings</h4>
             <p><strong>Published:</strong> ${this.data.is_published ? 'Yes' : 'No (Draft)'}</p>
-            <p><strong>Featured:</strong> ${this.data.is_featured ? 'Yes' : 'No'}</p>
             <p><strong>Challenge Date:</strong> ${this.data.challenge_date || 'None'}</p>
           </div>
         </div>
@@ -1065,10 +1045,7 @@
           }
           break;
         case 1:
-          if (!this.data.title || !this.data.title.trim()) {
-            alert('Please enter a puzzle title');
-            return false;
-          }
+          // Title validation removed - no longer required
           break;
         case 2:
           if (this.data.game_type === 'krossword') {
@@ -1236,12 +1213,10 @@
       
       // Prepare form data
       const formData = new FormData();
-      formData.append('puzzle[title]', this.data.title);
       formData.append('puzzle[game_type]', this.data.game_type);
       formData.append('puzzle[difficulty]', this.data.difficulty);
       formData.append('puzzle[rating]', this.data.rating);
       formData.append('puzzle[is_published]', this.data.is_published ? '1' : '0');
-      formData.append('puzzle[is_featured]', this.data.is_featured ? '1' : '0');
       if (this.data.challenge_date) {
         formData.append('puzzle[challenge_date]', this.data.challenge_date);
       }

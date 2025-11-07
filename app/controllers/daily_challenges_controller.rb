@@ -55,7 +55,7 @@ class DailyChallengesController < ApplicationController
         
         # Create daily challenge with overrides
         daily_challenge = DailyChallenge.create!(
-          title: challenge_params[:title_override].present? ? challenge_params[:title_override] : puzzle.title,
+          title: challenge_params[:title_override].presence || "#{puzzle.game_type || 'Puzzle'} - #{challenge_params[:challenge_date]}",
           description: challenge_params[:description_override].present? ? challenge_params[:description_override] : puzzle.description,
           difficulty: puzzle.difficulty,
           rating: puzzle.rating,

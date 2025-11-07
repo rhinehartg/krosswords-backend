@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_02_221257) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_07_010901) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -63,17 +63,14 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_02_221257) do
     t.text "description"
     t.string "difficulty", limit: 10, null: false
     t.string "game_type"
-    t.boolean "is_featured", default: false, null: false
     t.boolean "is_published", default: false, null: false
     t.json "puzzle_data"
     t.integer "rating", limit: 2, null: false
-    t.string "title", limit: 255, null: false
     t.string "type"
     t.datetime "updated_at", null: false
     t.index ["challenge_date", "game_type"], name: "index_puzzles_on_challenge_date_and_game_type", unique: true, where: "(challenge_date IS NOT NULL)"
     t.index ["difficulty"], name: "index_puzzles_on_difficulty"
     t.index ["game_type"], name: "index_puzzles_on_game_type"
-    t.index ["is_featured"], name: "index_puzzles_on_is_featured"
     t.index ["is_published"], name: "index_puzzles_on_is_published"
     t.index ["rating"], name: "index_puzzles_on_rating"
     t.index ["type"], name: "index_puzzles_on_type"

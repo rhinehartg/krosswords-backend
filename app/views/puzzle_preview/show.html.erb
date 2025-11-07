@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Puzzle Preview: <%= @puzzle.title %></title>
+  <title>Puzzle Preview: <%= @puzzle.game_type || 'Puzzle' %> - <%= @puzzle.challenge_date&.strftime('%b %d, %Y') || 'No date' %></title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
@@ -173,7 +173,7 @@
     <a href="<%= admin_puzzle_path(@puzzle) %>" class="back-button">← Back to Puzzle</a>
     
     <div class="header">
-      <h1 class="puzzle-title"><%= @puzzle.title %></h1>
+      <h1 class="puzzle-title"><%= @puzzle.game_type || 'Puzzle' %> - <%= @puzzle.challenge_date&.strftime('%B %d, %Y') || 'No date' %></h1>
       <p class="puzzle-description">
         <%= if @puzzle.game_type == 'krisskross' || @puzzle.game_type == 'konundrum'
               @puzzle.clue || @puzzle.puzzle_data&.dig('clue') || @puzzle.description

@@ -40,7 +40,6 @@ class DailyChallenge < Puzzle
     if result[:success]
       puzzle = result[:puzzle]
       create!(
-        title: puzzle.title,
         description: puzzle.description,
         difficulty: puzzle.difficulty,
         rating: puzzle.rating,

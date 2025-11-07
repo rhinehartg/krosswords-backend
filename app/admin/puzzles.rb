@@ -2,7 +2,7 @@ require 'json'
 
 ActiveAdmin.register Puzzle do
   # Permit parameters for puzzle management
-  permit_params :title, :description, :difficulty, :rating, :is_published, :clues, :is_featured, :challenge_date, :game_type, :puzzle_data
+  permit_params :description, :difficulty, :rating, :is_published, :clues, :challenge_date, :game_type, :puzzle_data
   
   controller do
     # Parse puzzle_data string to hash before Active Admin processes params
@@ -175,7 +175,6 @@ ActiveAdmin.register Puzzle do
   index do
     selectable_column
     id_column
-    column :title
     column :game_type do |puzzle|
       case puzzle.game_type
       when 'krossword'
@@ -190,6 +189,10 @@ ActiveAdmin.register Puzzle do
         content_tag :span, "KrissKross", 
           class: "status_tag",
           style: "background-color: #ff6b35; color: white;"
+      when 'konstructor'
+        content_tag :span, "Konstructor", 
+          class: "status_tag",
+          style: "background-color: #9b59b6; color: white;"
       else
         content_tag :span, "Krossword (Legacy)", 
           class: "status_tag",
@@ -200,6 +203,8 @@ ActiveAdmin.register Puzzle do
       text = case puzzle.game_type
       when 'konundrum', 'krisskross'
         puzzle.clue || puzzle.puzzle_data&.dig('clue') || 'N/A'
+      when 'konstructor'
+        'Word List Puzzle'
       else
         puzzle.description || 'N/A'
       end
@@ -210,10 +215,10 @@ ActiveAdmin.register Puzzle do
         content_tag :span, "Daily Challenge", 
           class: "status_tag daily_challenge",
           style: "background-color: #ff6b35; color: white;"
-      elsif puzzle.featured?
-        content_tag :span, "Featured", 
-          class: "status_tag featured",
-          style: "background-color: #28a745; color: white;"
+      elsif puzzle.challenge_date.present?
+        content_tag :span, "Challenge", 
+          class: "status_tag challenge",
+          style: "background-color: #007bff; color: white;"
       else
         content_tag :span, "Regular", 
           class: "status_tag regular",
@@ -246,6 +251,9 @@ ActiveAdmin.register Puzzle do
       when 'krisskross'
         words = puzzle.krisskross_words || puzzle.puzzle_data&.dig('words') || []
         "#{words.length} words"
+      when 'konstructor'
+        words = puzzle.konstructor_words || puzzle.puzzle_data&.dig('words') || []
+        "#{words.length} words"
       else
         "#{puzzle.clues_count} clues"
       end
@@ -276,7 +284,6 @@ ActiveAdmin.register Puzzle do
     
     attributes_table do
       row :id
-      row :title
       row :game_type do |puzzle|
         case puzzle.game_type
         when 'krossword'
@@ -288,6 +295,9 @@ ActiveAdmin.register Puzzle do
         when 'krisskross'
           content_tag :span, "KrissKross", 
             style: "background-color: #ff6b35; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
+        when 'konstructor'
+          content_tag :span, "Konstructor", 
+            style: "background-color: #9b59b6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;"
         else
           "Krossword (Legacy)"
         end
@@ -298,6 +308,8 @@ ActiveAdmin.register Puzzle do
       row :clue do |puzzle|
         if puzzle.game_type == 'konundrum' || puzzle.game_type == 'krisskross'
           puzzle.clue || puzzle.puzzle_data&.dig('clue') || 'N/A'
+        elsif puzzle.game_type == 'konstructor'
+          'N/A (Konstructor puzzles use word lists)'
         else
           'N/A (Krossword puzzles use description)'
         end
@@ -329,6 +341,9 @@ ActiveAdmin.register Puzzle do
         when 'krisskross'
           words = puzzle.krisskross_words || puzzle.puzzle_data&.dig('words') || []
           "Words: #{words.join(', ')} (#{words.length} total)".html_safe
+        when 'konstructor'
+          words = puzzle.konstructor_words || puzzle.puzzle_data&.dig('words') || []
+          "Words: #{words.join(', ')} (#{words.length} total)".html_safe
         else
           "Clues Count: #{puzzle.clues_count}"
         end
@@ -346,7 +361,7 @@ ActiveAdmin.register Puzzle do
       end
       row :clues do |puzzle|
         # Only show clues for krossword puzzles
-        if puzzle.game_type == 'konundrum' || puzzle.game_type == 'krisskross'
+        if puzzle.game_type == 'konundrum' || puzzle.game_type == 'krisskross' || puzzle.game_type == 'konstructor'
           "N/A - #{puzzle.game_type&.capitalize} puzzles don't use clues"
         elsif puzzle.clues.present?
           content_tag :div, class: 'clues-display' do
@@ -391,11 +406,11 @@ ActiveAdmin.register Puzzle do
   # Form configuration
   form do |f|
     f.inputs "Puzzle Details" do
-      f.input :title
       f.input :game_type, as: :select, collection: [
         ['Krossword', 'krossword'],
         ['Konundrum', 'konundrum'],
-        ['KrissKross', 'krisskross']
+        ['KrissKross', 'krisskross'],
+        ['Konstructor', 'konstructor']
       ], hint: "Select the game type for this puzzle"
       f.input :difficulty, as: :select, collection: [
         ['Easy', 'Easy'],
@@ -405,14 +420,12 @@ ActiveAdmin.register Puzzle do
       f.input :rating, as: :select, collection: [1, 2, 3], 
         hint: "1 = 1 star, 2 = 2 stars, 3 = 3 stars"
       f.input :is_published, as: :boolean
-      f.input :is_featured, as: :boolean, 
-        hint: "Mark this puzzle as featured"
     end
     
     f.inputs "Puzzle Type (Challenge)" do
       f.input :challenge_date, as: :string, 
         input_html: { type: 'date' },
-        hint: "Set a date to make this a daily challenge (leave blank for regular puzzle)"
+        hint: "Set a date to make this a challenge. Note: Krossword puzzles must be on Sunday."
     end
     
     # Conditional inputs based on game_type
@@ -444,7 +457,8 @@ ActiveAdmin.register Puzzle do
   filter :game_type, as: :select, collection: [
     ['Krossword', 'krossword'],
     ['Konundrum', 'konundrum'],
-    ['KrissKross', 'krisskross']
+    ['KrissKross', 'krisskross'],
+    ['Konstructor', 'konstructor']
   ]
   filter :difficulty, as: :select, collection: ['Easy', 'Medium', 'Hard']
   filter :rating, as: :select, collection: [1, 2, 3]

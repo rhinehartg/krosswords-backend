@@ -167,7 +167,7 @@ function generateDailyChallenge() {
   .then(result => {
     if (result.success) {
       statusText.textContent = '✅ Daily challenge generated successfully!';
-      statusDetails.textContent = `Title: ${result.daily_challenge.title} | Date: ${result.daily_challenge.challenge_date}`;
+      statusDetails.textContent = `Game Type: ${result.daily_challenge.game_type || 'Puzzle'} | Date: ${result.daily_challenge.challenge_date}`;
       generateBtn.textContent = 'Success!';
       generateBtn.style.background = '#28a745';
       

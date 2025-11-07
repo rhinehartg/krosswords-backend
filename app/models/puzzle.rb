@@ -1,13 +1,14 @@
 class Puzzle < ApplicationRecord
   # Common validations for all puzzle types
-  validates :title, presence: true, length: { maximum: 255 }
   validates :difficulty, presence: true, inclusion: { in: %w[Easy Medium Hard] }
   validates :rating, presence: true, inclusion: { in: [1, 2, 3] }
   validates :is_published, inclusion: { in: [true, false] }
-  validates :game_type, inclusion: { in: %w[krossword konundrum krisskross] }, allow_nil: true
+  validates :game_type, inclusion: { in: %w[krossword konundrum krisskross konstructor] }, allow_nil: true
   
   # Validate puzzle_data JSON structure based on game_type
   validate :validate_puzzle_data_structure
+  # Validate that krossword puzzles must have challenge_date on Sunday
+  validate :validate_krossword_challenge_date
 
   # Associations
   has_many :ratings, dependent: :destroy
@@ -16,7 +17,7 @@ class Puzzle < ApplicationRecord
 
   # For Active Admin filtering
   def self.ransackable_attributes(auth_object = nil)
-    ["created_at", "description", "difficulty", "id", "is_published", "rating", "title", "updated_at", "is_featured", "challenge_date", "type", "game_type", "puzzle_data"]
+    ["created_at", "description", "difficulty", "id", "is_published", "rating", "updated_at", "challenge_date", "type", "game_type", "puzzle_data"]
   end
 
   def self.ransackable_associations(auth_object = nil)
@@ -31,10 +32,10 @@ class Puzzle < ApplicationRecord
   scope :krosswords, -> { where(game_type: 'krossword') }
   scope :konundrums, -> { where(game_type: 'konundrum') }
   scope :krisskross, -> { where(game_type: 'krisskross') }
+  scope :konstructors, -> { where(game_type: 'konstructor') }
   
   # Puzzle type scopes (challenge types)
-  scope :regular, -> { where(type: nil, is_featured: false) }
-  scope :featured, -> { where(is_featured: true) }
+  scope :regular, -> { where(type: nil, challenge_date: nil) }
   scope :daily_challenges, -> { where(type: 'DailyChallenge') }
 
   # Helper methods for difficulty
@@ -75,25 +76,25 @@ class Puzzle < ApplicationRecord
   def krisskross?
     game_type == 'krisskross'
   end
+
+  def konstructor?
+    game_type == 'konstructor'
+  end
   
   # Helper methods for puzzle types (challenges)
   def daily_challenge?
     read_attribute(:type) == 'DailyChallenge'
   end
   
-  def featured?
-    is_featured?
-  end
-  
   def regular?
-    read_attribute(:type).nil? && !is_featured?
+    read_attribute(:type).nil? && challenge_date.nil?
   end
   
   def puzzle_type
     if daily_challenge?
       'Daily Challenge'
-    elsif featured?
-      'Featured'
+    elsif challenge_date.present?
+      'Challenge'
     else
       'Regular'
     end
@@ -150,6 +151,11 @@ class Puzzle < ApplicationRecord
   def krisskross_layout
     puzzle_data&.dig('layout')
   end
+
+  # For Konstructor: words (array of words to place on grid)
+  def konstructor_words
+    puzzle_data&.dig('words') || []
+  end
   
   # Helper method to get clues count
   def clues_count
@@ -205,6 +211,8 @@ class Puzzle < ApplicationRecord
       validate_konundrum_structure
     when 'krisskross'
       validate_krisskross_structure
+    when 'konstructor'
+      validate_konstructor_structure
     when nil
       # Legacy puzzles - validate as krossword
       validate_krossword_structure if puzzle_data.is_a?(Hash)
@@ -308,6 +316,34 @@ class Puzzle < ApplicationRecord
           end
         end
       end
+    end
+  end
+
+  def validate_konstructor_structure
+    unless puzzle_data.is_a?(Hash)
+      errors.add(:puzzle_data, "must be a hash for konstructor puzzles")
+      return
+    end
+    
+    errors.add(:puzzle_data, "must contain 'words' array") unless puzzle_data['words'].is_a?(Array) && puzzle_data['words'].present?
+    
+    # Validate words are strings
+    if puzzle_data['words'].is_a?(Array)
+      puzzle_data['words'].each_with_index do |word, index|
+        unless word.is_a?(String) && word.present?
+          errors.add(:puzzle_data, "words[#{index}] must be a non-empty string")
+        end
+      end
+    end
+  end
+
+  def validate_krossword_challenge_date
+    # Only validate if this is a krossword puzzle and has a challenge_date
+    return unless game_type == 'krossword' && challenge_date.present?
+    
+    # Sunday is wday == 0 in Ruby (Monday is 1, Sunday is 0)
+    unless challenge_date.sunday?
+      errors.add(:challenge_date, "must be a Sunday for krossword puzzles")
     end
   end
 end
