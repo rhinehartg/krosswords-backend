@@ -3,6 +3,7 @@ class Api::PuzzlesController < ApplicationController
 
   # GET /api/puzzles
   def index
+    # Get today's date (challenge_date is date-only, no timezone needed)
     today = Date.today
     
     # Order puzzles to prioritize: past (most recent first), then today, then future (nearest first)
@@ -27,19 +28,29 @@ class Api::PuzzlesController < ApplicationController
     # - Daily challenges (Konundrum, KrissKross, Konstructor): challenge_date represents a single day (must match today)
     # - Weekly challenges (Krossword): challenge_date must be on Sunday
     if params[:type] == 'DailyChallenge' || params[:active_challenges] == 'true'
-      # Daily challenges: Konundrum, KrissKross, and Konstructor - match if challenge_date is today
+      # Daily challenges: Konundrum, KrissKross, and Konstructor - match if challenge_date is today (exact match only)
       daily_puzzles = puzzles.where(challenge_date: today, game_type: ['konundrum', 'krisskross', 'konstructor'])
       
-      # Weekly challenges: Krossword - match if challenge_date is Sunday (this week's Sunday or next)
-      # Find the Sunday for this week (or next if today is after Sunday)
-      days_until_sunday = (7 - today.wday) % 7
-      sunday = days_until_sunday == 0 ? today : today + days_until_sunday.days
+      # Weekly challenges: Krossword - match if challenge_date is the upcoming Sunday
+      # Krosswords are available Monday-Sunday, with challenge_date set to Sunday
+      # Show the upcoming Sunday's krossword (available starting Saturday before it)
+      if today.wday == 0
+        # Today is Sunday, show next Sunday's krossword
+        sunday = today + 7.days
+      elsif today.wday == 6
+        # Today is Saturday, show tomorrow's (next Sunday's) krossword
+        sunday = today + 1.day
+      else
+        # Show the upcoming Sunday
+        days_until_sunday = 7 - today.wday
+        sunday = today + days_until_sunday.days
+      end
       weekly_puzzles = puzzles.where(challenge_date: sunday, game_type: 'krossword')
       
       puzzles = daily_puzzles.or(weekly_puzzles)
     else
-      # All puzzles: exclude today's challenges (they should only appear in daily challenges)
-      puzzles = puzzles.where.not(challenge_date: today)
+      # Past puzzles: only show puzzles with challenge_date in the past (before today)
+      puzzles = puzzles.where("challenge_date < ?", today)
     end
     
     # Apply filters

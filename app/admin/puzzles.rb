@@ -293,6 +293,7 @@ ActiveAdmin.register Puzzle do
     ['KrissKross', 'krisskross'],
     ['Konstructor', 'konstructor']
   ]
+  filter :challenge_date, as: :date_range
   filter :is_published, as: :select, collection: [['True', true], ['False', false]]
   filter :created_at
   filter :updated_at
