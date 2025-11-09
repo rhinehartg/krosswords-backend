@@ -157,10 +157,6 @@ class Api::GameSessionsController < ApplicationController
     
     # Store completion metadata in game_state
     completion_data = {}
-    if session.started_at
-      duration = Time.current - session.started_at
-      completion_data[:completion_duration_seconds] = duration.to_i
-    end
     
     # Store score if provided in game_state
     # If puzzle was revealed, score should be 0
