@@ -211,9 +211,9 @@ class Puzzle < ApplicationRecord
       return
     end
     
-    # Validate puzzle_clue is present and is a string
-    unless puzzle_data['puzzle_clue'].is_a?(String) && puzzle_data['puzzle_clue'].present?
-      errors.add(:puzzle_data, "must contain 'puzzle_clue' string for konundrum puzzles")
+    # Validate clue is a string if present (optional - can be blank for "clueless" mode)
+    if puzzle_data.key?('clue') && !puzzle_data['clue'].is_a?(String)
+      errors.add(:puzzle_data, "'clue' must be a string for konundrum puzzles")
     end
     
     errors.add(:puzzle_data, "must contain 'words' array") unless puzzle_data['words'].is_a?(Array) && puzzle_data['words'].present?
@@ -261,12 +261,16 @@ class Puzzle < ApplicationRecord
       return
     end
     
-    # Validate puzzle_clue is present and is a string
-    unless puzzle_data['puzzle_clue'].is_a?(String) && puzzle_data['puzzle_clue'].present?
-      errors.add(:puzzle_data, "must contain 'puzzle_clue' string for krisskross puzzles")
+    # Validate clue is optional but must be a string if present
+    if puzzle_data.key?('clue') && !puzzle_data['clue'].is_a?(String)
+      errors.add(:puzzle_data, "'clue' must be a string for krisskross puzzles")
     end
     
-    errors.add(:puzzle_data, "must contain 'clue' string") unless puzzle_data['clue'].is_a?(String) && puzzle_data['clue'].present?
+    # Validate puzzle_clue is optional but must be a string if present (for backward compatibility)
+    if puzzle_data.key?('puzzle_clue') && !puzzle_data['puzzle_clue'].is_a?(String)
+      errors.add(:puzzle_data, "'puzzle_clue' must be a string for krisskross puzzles")
+    end
+    
     errors.add(:puzzle_data, "must contain 'words' array") unless puzzle_data['words'].is_a?(Array) && puzzle_data['words'].present?
     errors.add(:puzzle_data, "must contain 'layout' hash") unless puzzle_data['layout'].is_a?(Hash) && puzzle_data['layout'].present?
     

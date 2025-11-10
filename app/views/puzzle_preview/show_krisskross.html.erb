@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Krossword Puzzle Preview - Puzzle #<%= @puzzle.id %></title>
+  <title>KrissKross Puzzle Preview - Puzzle #<%= @puzzle.id %></title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
@@ -22,7 +22,7 @@
     .header {
       text-align: center;
       margin-bottom: 30px;
-      border-bottom: 2px solid #333;
+      border-bottom: 2px solid #ff6b35;
       padding-bottom: 20px;
     }
     
@@ -52,10 +52,6 @@
       font-weight: bold;
     }
     
-    .difficulty-easy { background-color: #d4edda; color: #155724; }
-    .difficulty-medium { background-color: #fff3cd; color: #856404; }
-    .difficulty-hard { background-color: #f8d7da; color: #721c24; }
-    
     .content {
       display: flex;
       gap: 30px;
@@ -67,7 +63,7 @@
       min-width: 400px;
     }
     
-    .clues-panel {
+    .words-panel {
       flex: 1;
       min-width: 300px;
     }
@@ -111,11 +107,11 @@
       color: #333;
     }
     
-    .clues-section {
+    .words-section {
       margin-bottom: 30px;
     }
     
-    .clues-title {
+    .words-title {
       font-size: 1.5em;
       font-weight: bold;
       margin-bottom: 15px;
@@ -124,26 +120,19 @@
       padding-bottom: 5px;
     }
     
-    .clue-item {
+    .word-item {
       margin-bottom: 10px;
       padding: 8px;
       background: #f8f9fa;
-      border-left: 4px solid #007bff;
+      border-left: 4px solid #ff6b35;
       border-radius: 4px;
-    }
-    
-    .clue-number {
       font-weight: bold;
-      color: #007bff;
-    }
-    
-    .clue-text {
-      margin-left: 10px;
+      font-size: 16px;
     }
     
     .back-button {
       display: inline-block;
-      background: #007bff;
+      background: #ff6b35;
       color: white;
       padding: 10px 20px;
       text-decoration: none;
@@ -152,7 +141,7 @@
     }
     
     .back-button:hover {
-      background: #0056b3;
+      background: #e55a2b;
     }
     
     @media (max-width: 768px) {
@@ -173,31 +162,13 @@
     <a href="<%= admin_puzzle_path(@puzzle) %>" class="back-button">← Back to Puzzle</a>
     
     <div class="header">
-      <h1 class="puzzle-title">Krossword - <%= @puzzle.challenge_date&.strftime('%B %d, %Y') || 'No date' %></h1>
+      <h1 class="puzzle-title">KrissKross - <%= @puzzle.challenge_date&.strftime('%B %d, %Y') || 'No date' %></h1>
       <p class="puzzle-description">
-        <%= @puzzle.puzzle_data&.dig('puzzle_clue') || @puzzle.description || 'No description' %>
+        <%= @puzzle.clue || @puzzle.puzzle_data&.dig('clue') || 'No theme' %>
       </p>
       <div class="puzzle-meta">
-        <% if @puzzle.respond_to?(:difficulty) && @puzzle.difficulty.present? %>
-          <span class="meta-item difficulty-<%= @puzzle.difficulty.downcase %>">
-            <%= @puzzle.difficulty %>
-          </span>
-        <% end %>
-        <% if @puzzle.respond_to?(:rating) && @puzzle.rating.present? %>
-          <span class="meta-item">
-            <%= "⭐" * @puzzle.rating.to_i %> Rating
-          </span>
-        <% end %>
         <span class="meta-item">
-          <%= if @puzzle.game_type == 'krisskross' && @puzzle.puzzle_data.present?
-                @puzzle.puzzle_data['words']&.count || @puzzle.puzzle_data[:words]&.count || @puzzle.clues.count
-              elsif @puzzle.game_type == 'konundrum' && @puzzle.puzzle_data.present?
-                @puzzle.puzzle_data['words']&.count || @puzzle.puzzle_data[:words]&.count || 0
-              elsif @puzzle.game_type == 'konstructor' && @puzzle.puzzle_data.present?
-                @puzzle.puzzle_data['words']&.count || @puzzle.puzzle_data[:words]&.count || 0
-              else
-                @puzzle.clues.count
-              end %> Words
+          <%= @puzzle.puzzle_data['words']&.count || @puzzle.puzzle_data[:words]&.count || 0 %> Words
         </span>
       </div>
     </div>
@@ -209,12 +180,9 @@
             <div class="grid-row">
               <% row.each_with_index do |cell, col_index| %>
                 <% 
-                  is_black = cell.blank?
+                  is_black = cell == '#' || cell.blank?
                   word_at_position = @crossword_layout[:result].find do |word|
-                    # Skip words with missing coordinates
                     next if word[:startx].nil? || word[:starty].nil?
-                    
-                    # Convert 1-based coordinates to 0-based for comparison
                     word_start_row = word[:starty] - 1
                     word_start_col = word[:startx] - 1
                     
@@ -247,23 +215,13 @@
         </div>
       </div>
 
-      <div class="clues-panel">
-        <div class="clues-section">
-          <h3 class="clues-title">Across</h3>
-          <% @crossword_layout[:result].select { |w| w[:orientation] == 'across' }.each do |word| %>
-            <div class="clue-item">
-              <span class="clue-number"><%= word[:position] %>.</span>
-              <span class="clue-text"><%= word[:clue] %></span>
-            </div>
-          <% end %>
-        </div>
-
-        <div class="clues-section">
-          <h3 class="clues-title">Down</h3>
-          <% @crossword_layout[:result].select { |w| w[:orientation] == 'down' }.each do |word| %>
-            <div class="clue-item">
-              <span class="clue-number"><%= word[:position] %>.</span>
-              <span class="clue-text"><%= word[:clue] %></span>
+      <div class="words-panel">
+        <div class="words-section">
+          <h3 class="words-title">Words to Place</h3>
+          <% words = @puzzle.puzzle_data['words'] || @puzzle.puzzle_data[:words] || [] %>
+          <% words.each_with_index do |word, index| %>
+            <div class="word-item">
+              <%= index + 1 %>. <%= word %>
             </div>
           <% end %>
         </div>
@@ -272,3 +230,4 @@
   </div>
 </body>
 </html>
+

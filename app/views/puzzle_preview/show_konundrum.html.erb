@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Konundrum Puzzle Preview - Puzzle #<%= @puzzle.id %></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header h1 {
+      margin: 0 0 10px 0;
+      color: #28a745;
+    }
+    .puzzle-container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .clue-section {
+      margin-bottom: 30px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border-left: 4px solid #28a745;
+    }
+    .clue-section h3 {
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+    .clue-text {
+      font-size: 18px;
+      color: #666;
+      font-style: italic;
+    }
+    .clueless {
+      color: #dc3545;
+      font-weight: bold;
+    }
+    .toggle-section {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #e7f3ff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #28a745;
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    .letters-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .word-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .word-label {
+      font-size: 14px;
+      color: #666;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    .letters-display {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .letter-tile {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .letter-tile.solved {
+      background: #d4edda;
+      border-color: #28a745;
+      color: #155724;
+    }
+    .solution-word {
+      font-size: 20px;
+      font-weight: bold;
+      color: #28a745;
+      margin-left: 10px;
+    }
+    .solution-word.hidden {
+      display: none;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #6c757d;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+    }
+    .back-link:hover {
+      background: #5a6268;
+    }
+    .info-section {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Konundrum Puzzle Preview</h1>
+    <p>Puzzle ID: #<%= @puzzle.id %> | Created: <%= @puzzle.created_at.strftime('%Y-%m-%d %H:%M') %></p>
+  </div>
+  
+  <div class="puzzle-container">
+    <% if @clue.present? %>
+      <div class="clue-section">
+        <h3>Clue/Theme:</h3>
+        <div class="clue-text"><%= @clue %></div>
+      </div>
+    <% else %>
+      <div class="clue-section">
+        <h3>Clue/Theme:</h3>
+        <div class="clue-text clueless">CLUELESS MODE</div>
+      </div>
+    <% end %>
+    
+    <div class="toggle-section">
+      <label class="toggle-switch">
+        <input type="checkbox" id="showSolution" onchange="toggleSolution()">
+        <span class="slider"></span>
+      </label>
+      <label for="showSolution" style="font-size: 16px; font-weight: 600; color: #333; cursor: pointer;">
+        Show Solution
+      </label>
+    </div>
+    
+    <div class="letters-grid">
+      <% @letter_groups.each_with_index do |letter_group, word_index| %>
+        <div class="word-row">
+          <div class="word-label">
+            Word <%= word_index + 1 %> (<%= letter_group.length %> letters)
+            <span class="solution-word hidden" id="solution-<%= word_index %>">
+              → <%= @words[word_index] %>
+            </span>
+          </div>
+          <div class="letters-display">
+            <% letter_group.each_with_index do |letter, letter_index| %>
+              <div class="letter-tile" id="tile-<%= word_index %>-<%= letter_index %>">
+                <%= letter %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+    
+    <div class="info-section">
+      <strong>Seed:</strong> <code><%= @seed.present? ? @seed : 'Not set' %></code><br>
+      <strong>Words:</strong> <%= @words.join(', ') %><br>
+      <strong>Total Letters:</strong> <%= @letters.length %>
+    </div>
+  </div>
+  
+  <a href="<%= admin_puzzle_path(@puzzle) %>" class="back-link">← Back to Puzzle</a>
+  
+  <script>
+    function toggleSolution() {
+      const showSolution = document.getElementById('showSolution').checked;
+      const solutionWords = document.querySelectorAll('.solution-word');
+      const letterTiles = document.querySelectorAll('.letter-tile');
+      
+      solutionWords.forEach(word => {
+        if (showSolution) {
+          word.classList.remove('hidden');
+        } else {
+          word.classList.add('hidden');
+        }
+      });
+      
+      letterTiles.forEach(tile => {
+        if (showSolution) {
+          tile.classList.add('solved');
+        } else {
+          tile.classList.remove('solved');
+        }
+      });
+    }
+  </script>
+</body>
+</html>
+

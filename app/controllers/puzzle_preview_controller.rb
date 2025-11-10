@@ -3,7 +3,21 @@ class PuzzlePreviewController < ApplicationController
   before_action :set_puzzle
 
   def show
-    @crossword_layout = generate_crossword_layout
+    case @puzzle.game_type
+    when 'konundrum'
+      render_konundrum_preview
+    when 'krisskross'
+      @crossword_layout = generate_crossword_layout
+      render 'show_krisskross'
+    when 'konstructor'
+      render_konstructor_preview
+    when 'krossword', nil
+      @crossword_layout = generate_crossword_layout
+      render 'show'
+    else
+      @crossword_layout = generate_crossword_layout
+      render 'show'
+    end
   end
 
   private
@@ -58,5 +72,36 @@ class PuzzlePreviewController < ApplicationController
       table: Array.new(10) { Array.new(10, '') },
       result: []
     }
+  end
+  
+  def render_konundrum_preview
+    puzzle_data = @puzzle.puzzle_data || {}
+    @clue = puzzle_data['clue'] || ''
+    @words = puzzle_data['words'] || []
+    @letters = @puzzle.letters || []
+    @seed = puzzle_data['seed'] || ''
+    
+    # Group letters by word sizes
+    if @letters.present? && @words.present?
+      word_sizes = @words.map(&:length)
+      current_index = 0
+      @letter_groups = word_sizes.map do |size|
+        group = @letters[current_index, size] || []
+        current_index += size
+        group
+      end
+    else
+      @letter_groups = []
+    end
+    
+    render 'show_konundrum'
+  end
+  
+  def render_konstructor_preview
+    puzzle_data = @puzzle.puzzle_data || {}
+    @puzzle_clue = puzzle_data['puzzle_clue'] || ''
+    @words = puzzle_data['words'] || []
+    
+    render 'show_konstructor'
   end
 end
