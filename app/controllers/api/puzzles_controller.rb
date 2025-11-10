@@ -31,12 +31,12 @@ class Api::PuzzlesController < ApplicationController
       # Daily challenges: Konundrum, KrissKross, and Konstructor - match if challenge_date is today (exact match only)
       daily_puzzles = puzzles.where(challenge_date: today, game_type: ['konundrum', 'krisskross', 'konstructor'])
       
-      # Weekly challenges: Krossword - match if challenge_date is the upcoming Sunday
+      # Weekly challenges: Krossword - match if challenge_date is the current/upcoming Sunday
       # Krosswords are available Monday-Sunday, with challenge_date set to Sunday
-      # Show the upcoming Sunday's krossword (available starting Saturday before it)
+      # Show this week's Sunday krossword (available all week, including Sunday itself)
       if today.wday == 0
-        # Today is Sunday, show next Sunday's krossword
-        sunday = today + 7.days
+        # Today is Sunday, show THIS Sunday's krossword (today)
+        sunday = today
       elsif today.wday == 6
         # Today is Saturday, show tomorrow's (next Sunday's) krossword
         sunday = today + 1.day
