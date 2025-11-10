@@ -121,6 +121,33 @@ ActiveAdmin.register Puzzle do
     end
   end
   
+  # Add preview button for Krossword puzzles
+  action_item :preview_krossword, only: [:show, :edit] do
+    if (resource.game_type == 'krossword' || resource.game_type.nil?) && resource.puzzle_data.present? && resource.clues.present?
+      link_to 'Preview Krossword', puzzle_preview_path(resource.id),
+        target: '_blank',
+        style: 'background-color: #007bff !important; color: black !important; padding: 10px 20px; text-decoration: none !important; border-radius: 5px; font-weight: bold; margin-right: 10px; border: 2px solid #007bff !important; display: inline-block; cursor: pointer;'
+    end
+  end
+  
+  # Add preview button for KrissKross puzzles
+  action_item :preview_krisskross, only: [:show, :edit] do
+    if resource.game_type == 'krisskross' && resource.puzzle_data.present? && resource.puzzle_data['words'].present?
+      link_to 'Preview KrissKross', puzzle_preview_path(resource.id),
+        target: '_blank',
+        style: 'background-color: #ff6b35 !important; color: black !important; padding: 10px 20px; text-decoration: none !important; border-radius: 5px; font-weight: bold; margin-right: 10px; border: 2px solid #ff6b35 !important; display: inline-block; cursor: pointer;'
+    end
+  end
+  
+  # Add preview button for Konstructor puzzles
+  action_item :preview_konstructor, only: [:show, :edit] do
+    if resource.game_type == 'konstructor' && resource.puzzle_data.present? && resource.puzzle_data['words'].present?
+      link_to 'Preview Konstructor', puzzle_preview_path(resource.id),
+        target: '_blank',
+        style: 'background-color: #9b59b6 !important; color: black !important; padding: 10px 20px; text-decoration: none !important; border-radius: 5px; font-weight: bold; margin-right: 10px; border: 2px solid #9b59b6 !important; display: inline-block; cursor: pointer;'
+    end
+  end
+  
   action_item :regenerate_letters, only: [:show, :edit] do
     if resource.game_type == 'konundrum' && resource.puzzle_data.present? && resource.puzzle_data['words'].present?
       link_to 'Regenerate Letters', regenerate_letters_admin_puzzle_path(resource),
@@ -137,39 +164,35 @@ ActiveAdmin.register Puzzle do
       clues_text = params[:clues] || ''
       generate_layout = params[:generate_layout] == '1'
       
-      if puzzle_clue.blank?
-        flash[:error] = 'Please provide a puzzle clue'
-        redirect_to quick_create_krossword_admin_puzzles_path and return
-      end
       
-      # Parse clues from text (format: "Clue text | ANSWER")
+      # Parse clues from table format (clue_text[] and clue_answer[] arrays)
+      clue_texts = params[:clue_text] || []
+      clue_answers = params[:clue_answer] || []
+      
       clues = []
-      clues_text.split("\n").each do |line|
-        line = line.strip
-        next if line.blank?
+      clue_texts.each_with_index do |clue_text, index|
+        answer = clue_answers[index]&.strip&.upcase || ''
+        clue_text = clue_text&.strip || ''
         
-        if line.include?('|')
-          parts = line.split('|', 2)
-          clue_text = parts[0].strip
-          answer = parts[1].strip.upcase
-          clues << { 'clue' => clue_text, 'answer' => answer } if clue_text.present? && answer.present?
-        else
-          # Try to parse as just answer (no clue)
-          answer = line.upcase
-          clues << { 'clue' => '', 'answer' => answer } if answer.present?
+        if clue_text.present? && answer.present?
+          clues << { 'clue' => clue_text, 'answer' => answer }
+        elsif answer.present?
+          # Allow answer-only clues (clue can be empty)
+          clues << { 'clue' => '', 'answer' => answer }
         end
       end
       
       if clues.empty?
-        flash[:error] = 'Please provide at least one clue (format: "Clue text | ANSWER")'
+        flash[:error] = 'Please provide at least one clue with an answer'
         redirect_to quick_create_krossword_admin_puzzles_path and return
       end
       
       # Build puzzle_data
       puzzle_data = {
-        'puzzle_clue' => puzzle_clue,
         'clues' => clues
       }
+      # Only include puzzle_clue if provided
+      puzzle_data['puzzle_clue'] = puzzle_clue if puzzle_clue.present?
       
       # Optionally generate layout
       if generate_layout
@@ -236,15 +259,77 @@ ActiveAdmin.register Puzzle do
             <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
             
             <div style="margin-bottom: 20px;">
-              <label style="display: block; margin-bottom: 5px; font-weight: bold;">Puzzle Clue/Theme (required):</label>
-              <input type="text" name="puzzle_clue" placeholder="e.g., Nature and Wildlife" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+              <label style="display: block; margin-bottom: 5px; font-weight: bold;">Puzzle Clue/Theme (optional):</label>
+              <input type="text" name="puzzle_clue" placeholder="e.g., Nature and Wildlife" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
             </div>
             
             <div style="margin-bottom: 20px;">
-              <label style="display: block; margin-bottom: 5px; font-weight: bold;">Clues (one per line, format: 'Clue text | ANSWER'):</label>
-              <textarea name="clues" rows="10" placeholder="A body of water | OCEAN&#10;Large cat | TIGER&#10;Bright light | LIGHT" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;"></textarea>
-              <small style="color: #666;">Enter clues one per line. Format: 'Clue text | ANSWER' (use pipe to separate clue from answer)</small>
+              <label style="display: block; margin-bottom: 10px; font-weight: bold;">Clues:</label>
+              <div id="clues-container" style="margin-bottom: 10px;">
+                <table id="clues-table" style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+                  <thead>
+                    <tr style="background: #f8f9fa;">
+                      <th style="padding: 10px; text-align: left; border: 1px solid #ddd; width: 60%;">Clue</th>
+                      <th style="padding: 10px; text-align: left; border: 1px solid #ddd; width: 30%;">Answer</th>
+                      <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 10%;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="clues-tbody">
+                    <tr>
+                      <td style="padding: 8px; border: 1px solid #ddd;">
+                        <input type="text" name="clue_text[]" placeholder="e.g., A body of water" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" />
+                      </td>
+                      <td style="padding: 8px; border: 1px solid #ddd;">
+                        <input type="text" name="clue_answer[]" placeholder="e.g., OCEAN" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-transform: uppercase;" />
+                      </td>
+                      <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                        <button type="button" onclick="removeClueRow(this)" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Remove</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <button type="button" onclick="addClueRow()" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Add Clue</button>
+              </div>
+              <small style="color: #666;">Add clues with their answers. Answers will be automatically converted to uppercase.</small>
             </div>
+            
+            <script>
+              function addClueRow() {
+                const tbody = document.getElementById('clues-tbody');
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                  <td style="padding: 8px; border: 1px solid #ddd;">
+                    <input type="text" name="clue_text[]" placeholder="e.g., A body of water" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" />
+                  </td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">
+                    <input type="text" name="clue_answer[]" placeholder="e.g., OCEAN" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-transform: uppercase;" />
+                  </td>
+                  <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                    <button type="button" onclick="removeClueRow(this)" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Remove</button>
+                  </td>
+                `;
+                tbody.appendChild(row);
+              }
+              
+              function removeClueRow(button) {
+                const tbody = document.getElementById('clues-tbody');
+                if (tbody.children.length > 1) {
+                  button.closest('tr').remove();
+                } else {
+                  alert('You must have at least one clue row.');
+                }
+              }
+              
+              // Auto-uppercase answers
+              document.addEventListener('DOMContentLoaded', function() {
+                const container = document.getElementById('clues-container');
+                container.addEventListener('input', function(e) {
+                  if (e.target.name === 'clue_answer[]') {
+                    e.target.value = e.target.value.toUpperCase();
+                  }
+                });
+              });
+            </script>
             
             <div style="margin-bottom: 20px;">
               <label>
@@ -586,38 +671,35 @@ ActiveAdmin.register Puzzle do
       clues_text = params[:clues] || ''
       generate_layout = params[:generate_layout] == '1'
       
-      if puzzle_clue.blank?
-        flash[:error] = 'Please provide a puzzle clue'
-        redirect_to quick_edit_krossword_admin_puzzle_path(resource) and return
-      end
       
-      # Parse clues from text (format: "Clue text | ANSWER")
+      # Parse clues from table format (clue_text[] and clue_answer[] arrays)
+      clue_texts = params[:clue_text] || []
+      clue_answers = params[:clue_answer] || []
+      
       clues = []
-      clues_text.split("\n").each do |line|
-        line = line.strip
-        next if line.blank?
+      clue_texts.each_with_index do |clue_text, index|
+        answer = clue_answers[index]&.strip&.upcase || ''
+        clue_text = clue_text&.strip || ''
         
-        if line.include?('|')
-          parts = line.split('|', 2)
-          clue_text = parts[0].strip
-          answer = parts[1].strip.upcase
-          clues << { 'clue' => clue_text, 'answer' => answer } if clue_text.present? && answer.present?
-        else
-          answer = line.upcase
-          clues << { 'clue' => '', 'answer' => answer } if answer.present?
+        if clue_text.present? && answer.present?
+          clues << { 'clue' => clue_text, 'answer' => answer }
+        elsif answer.present?
+          # Allow answer-only clues (clue can be empty)
+          clues << { 'clue' => '', 'answer' => answer }
         end
       end
       
       if clues.empty?
-        flash[:error] = 'Please provide at least one clue (format: "Clue text | ANSWER")'
+        flash[:error] = 'Please provide at least one clue with an answer'
         redirect_to quick_edit_krossword_admin_puzzle_path(resource) and return
       end
       
       # Build puzzle_data
       puzzle_data = {
-        'puzzle_clue' => puzzle_clue,
         'clues' => clues
       }
+      # Only include puzzle_clue if provided
+      puzzle_data['puzzle_clue'] = puzzle_clue if puzzle_clue.present?
       
       # Optionally generate layout
       if generate_layout
@@ -670,8 +752,7 @@ ActiveAdmin.register Puzzle do
       # Pre-populate form with existing data
       puzzle_data = resource.puzzle_data || {}
       @puzzle_clue = puzzle_data['puzzle_clue'] || ''
-      clues = puzzle_data['clues'] || []
-      @clues_text = clues.map { |c| "#{c['clue']} | #{c['answer']}" }.join("\n")
+      @clues = puzzle_data['clues'] || []
       @challenge_date = resource.challenge_date&.strftime('%Y-%m-%d') || ''
       
       render inline: <<~ERB
@@ -687,15 +768,92 @@ ActiveAdmin.register Puzzle do
             <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
             
             <div style="margin-bottom: 20px;">
-              <label style="display: block; margin-bottom: 5px; font-weight: bold;">Puzzle Clue/Theme (required):</label>
-              <input type="text" name="puzzle_clue" value="<%= @puzzle_clue %>" placeholder="e.g., Nature and Wildlife" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+              <label style="display: block; margin-bottom: 5px; font-weight: bold;">Puzzle Clue/Theme (optional):</label>
+              <input type="text" name="puzzle_clue" value="<%= @puzzle_clue %>" placeholder="e.g., Nature and Wildlife" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
             </div>
             
             <div style="margin-bottom: 20px;">
-              <label style="display: block; margin-bottom: 5px; font-weight: bold;">Clues (one per line, format: 'Clue text | ANSWER'):</label>
-              <textarea name="clues" rows="10" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;"><%= @clues_text %></textarea>
-              <small style="color: #666;">Enter clues one per line. Format: 'Clue text | ANSWER' (use pipe to separate clue from answer)</small>
+              <label style="display: block; margin-bottom: 10px; font-weight: bold;">Clues:</label>
+              <div id="clues-container" style="margin-bottom: 10px;">
+                <table id="clues-table" style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+                  <thead>
+                    <tr style="background: #f8f9fa;">
+                      <th style="padding: 10px; text-align: left; border: 1px solid #ddd; width: 60%;">Clue</th>
+                      <th style="padding: 10px; text-align: left; border: 1px solid #ddd; width: 30%;">Answer</th>
+                      <th style="padding: 10px; text-align: center; border: 1px solid #ddd; width: 10%;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="clues-tbody">
+                    <% @clues.each do |clue| %>
+                      <tr>
+                        <td style="padding: 8px; border: 1px solid #ddd;">
+                          <input type="text" name="clue_text[]" value="<%= clue['clue'] %>" placeholder="e.g., A body of water" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" />
+                        </td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">
+                          <input type="text" name="clue_answer[]" value="<%= clue['answer'] %>" placeholder="e.g., OCEAN" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-transform: uppercase;" />
+                        </td>
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                          <button type="button" onclick="removeClueRow(this)" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Remove</button>
+                        </td>
+                      </tr>
+                    <% end %>
+                    <% if @clues.empty? %>
+                      <tr>
+                        <td style="padding: 8px; border: 1px solid #ddd;">
+                          <input type="text" name="clue_text[]" placeholder="e.g., A body of water" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" />
+                        </td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">
+                          <input type="text" name="clue_answer[]" placeholder="e.g., OCEAN" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-transform: uppercase;" />
+                        </td>
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                          <button type="button" onclick="removeClueRow(this)" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Remove</button>
+                        </td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+                <button type="button" onclick="addClueRow()" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Add Clue</button>
+              </div>
+              <small style="color: #666;">Add clues with their answers. Answers will be automatically converted to uppercase.</small>
             </div>
+            
+            <script>
+              function addClueRow() {
+                const tbody = document.getElementById('clues-tbody');
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                  <td style="padding: 8px; border: 1px solid #ddd;">
+                    <input type="text" name="clue_text[]" placeholder="e.g., A body of water" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" />
+                  </td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">
+                    <input type="text" name="clue_answer[]" placeholder="e.g., OCEAN" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-transform: uppercase;" />
+                  </td>
+                  <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                    <button type="button" onclick="removeClueRow(this)" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Remove</button>
+                  </td>
+                `;
+                tbody.appendChild(row);
+              }
+              
+              function removeClueRow(button) {
+                const tbody = document.getElementById('clues-tbody');
+                if (tbody.children.length > 1) {
+                  button.closest('tr').remove();
+                } else {
+                  alert('You must have at least one clue row.');
+                }
+              }
+              
+              // Auto-uppercase answers
+              document.addEventListener('DOMContentLoaded', function() {
+                const container = document.getElementById('clues-container');
+                container.addEventListener('input', function(e) {
+                  if (e.target.name === 'clue_answer[]') {
+                    e.target.value = e.target.value.toUpperCase();
+                  }
+                });
+              });
+            </script>
             
             <div style="margin-bottom: 20px;">
               <label>
@@ -1401,6 +1559,40 @@ ActiveAdmin.register Puzzle do
     end
   end
 
+  # Batch actions
+  batch_action :publish, confirm: "Are you sure you want to publish the selected puzzles?" do |ids|
+    Puzzle.where(id: ids).update_all(is_published: true)
+    redirect_to collection_path, notice: "Successfully published #{ids.size} puzzle(s)."
+  end
+  
+  batch_action :unpublish, confirm: "Are you sure you want to unpublish the selected puzzles?" do |ids|
+    Puzzle.where(id: ids).update_all(is_published: false)
+    redirect_to collection_path, notice: "Successfully unpublished #{ids.size} puzzle(s)."
+  end
+  
+  batch_action :set_challenge_date, form: {
+    challenge_date: :string
+  } do |ids, inputs|
+    date_value = inputs[:challenge_date] || inputs['challenge_date']
+    
+    if date_value.present?
+      begin
+        challenge_date = Date.parse(date_value.to_s)
+        Puzzle.where(id: ids).update_all(challenge_date: challenge_date)
+        redirect_to collection_path, notice: "Successfully set challenge date to #{challenge_date.strftime('%B %d, %Y')} for #{ids.size} puzzle(s)."
+      rescue ArgumentError => e
+        redirect_to collection_path, alert: "Invalid date format. Please use YYYY-MM-DD format. Error: #{e.message}"
+      end
+    else
+      redirect_to collection_path, alert: "Please provide a challenge date."
+    end
+  end
+  
+  batch_action :clear_challenge_date, confirm: "Are you sure you want to clear the challenge date for the selected puzzles?" do |ids|
+    Puzzle.where(id: ids).update_all(challenge_date: nil)
+    redirect_to collection_path, notice: "Successfully cleared challenge date for #{ids.size} puzzle(s)."
+  end
+  
   # Index page configuration
   index do
     selectable_column

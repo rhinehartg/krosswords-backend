@@ -22,14 +22,20 @@
     .header {
       text-align: center;
       margin-bottom: 30px;
-      border-bottom: 2px solid #333;
+      border-bottom: 3px solid #007bff;
       padding-bottom: 20px;
     }
     
     .puzzle-title {
       font-size: 2.5em;
-      color: #333;
+      color: #007bff;
       margin: 0;
+    }
+    
+    .puzzle-id {
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 10px;
     }
     
     .puzzle-description {
@@ -174,6 +180,7 @@
     
     <div class="header">
       <h1 class="puzzle-title">Krossword - <%= @puzzle.challenge_date&.strftime('%B %d, %Y') || 'No date' %></h1>
+      <p class="puzzle-id">Puzzle ID: #<%= @puzzle.id %> | Created: <%= @puzzle.created_at.strftime('%Y-%m-%d %H:%M') %></p>
       <p class="puzzle-description">
         <%= @puzzle.puzzle_data&.dig('puzzle_clue') || @puzzle.description || 'No description' %>
       </p>

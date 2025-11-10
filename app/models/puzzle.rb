@@ -177,9 +177,9 @@ class Puzzle < ApplicationRecord
       return
     end
     
-    # Validate puzzle_clue is present and is a string
-    unless puzzle_data['puzzle_clue'].is_a?(String) && puzzle_data['puzzle_clue'].present?
-      errors.add(:puzzle_data, "must contain 'puzzle_clue' string for krossword puzzles")
+    # Validate puzzle_clue is optional but must be a string if present
+    if puzzle_data.key?('puzzle_clue') && !puzzle_data['puzzle_clue'].is_a?(String)
+      errors.add(:puzzle_data, "'puzzle_clue' must be a string for krossword puzzles")
     end
     
     # Clues are required for krosswords
